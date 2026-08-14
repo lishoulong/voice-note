@@ -48,6 +48,21 @@ actor LlamaDiaryEngine {
                          sourceLabel: "本机 · Qwen3-1.7B")
     }
 
+    /// 轻润色一段口语文字(断句/去口水词/修同音错字,保持原意与专名)。失败返回 nil。
+    func polish(_ text: String) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, ensureLoaded() else { return nil }
+        let sys = """
+        你是文字润色助手。把用户这段语音转写的口语文字整理成通顺的书面中文。
+        只做:断句与加标点、去掉口水词(嗯、那个、就是说、然后就)、修正明显的同音错别字。
+        严格保持原意,不增删信息,不改写人名、地名等专有名词。只输出润色后的文字,不要任何解释。
+        """
+        guard let raw = bridge.generate(withSystem: sys, user: trimmed + " /no_think",
+                                        grammar: nil, maxTokens: 400) else { return nil }
+        let cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? nil : cleaned
+    }
+
     // MARK: - JSON 模型
     private struct LlamaDraft: Codable {
         var title: String

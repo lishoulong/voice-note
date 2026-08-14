@@ -141,6 +141,7 @@ struct RecordingSheet: View {
 
     @State private var dictation = SpeechDictation()
     @State private var text = ""
+    @State private var polishing = false
 
     private var canSend: Bool {
         !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -154,6 +155,7 @@ struct RecordingSheet: View {
             VStack(alignment: .leading, spacing: Space.s3) {
                 header
                 editor
+                polishRow
                 statusLine
                 waveform
                 controls
@@ -205,6 +207,27 @@ struct RecordingSheet: View {
             .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(DC.divider, lineWidth: 1))
     }
 
+    // 轻润色:本机 Qwen 断句/去口水词/修同音错字(需已下载模型)
+    @ViewBuilder
+    private var polishRow: some View {
+        if polishing {
+            HStack(spacing: Space.s2) {
+                ProgressView().controlSize(.mini)
+                Text("轻润色中 · 本机 Qwen · 只断句去口水词")
+                    .font(.serifBody(13)).foregroundStyle(DC.accent700)
+            }
+        } else if LlamaDiaryEngine.isModelDownloaded && canSend {
+            Button { polish() } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "wand.and.stars").font(.system(size: 12))
+                    Text("轻润色 · 断句去口水词").font(.serifBody(13.5))
+                }
+                .foregroundStyle(DC.accent700)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     private var statusLine: some View {
         HStack {
             switch dictation.status {
@@ -212,7 +235,7 @@ struct RecordingSheet: View {
                 Text("到 设置 开启麦克风与语音识别")
                     .font(.serifBody(12.5)).foregroundStyle(DC.neutral600)
             case .unavailable:
-                Text("换真机或联网可用本机听写")
+                Text("换真机或联网可用系统听写")
                     .font(.serifBody(12.5)).foregroundStyle(DC.neutral600)
             default:
                 EmptyView()
@@ -237,7 +260,8 @@ struct RecordingSheet: View {
 
     private var controls: some View {
         HStack(spacing: Space.s3) {
-            Button("丢弃") { close() }.buttonStyle(SecondaryButton())
+            Button("丢弃") { close() }
+                .buttonStyle(SecondaryButton())
             Button { toggleMic() } label: {
                 Image(systemName: dictation.isListening ? "mic.fill" : "mic.slash")
                     .frame(width: 20, height: 20)
@@ -247,8 +271,8 @@ struct RecordingSheet: View {
                 Text("发送到笔记").frame(maxWidth: .infinity)
             }
             .buttonStyle(PrimaryButton())
-            .disabled(!canSend)
-            .opacity(canSend ? 1 : 0.45)
+            .disabled(!canSend || polishing)
+            .opacity(canSend && !polishing ? 1 : 0.45)
         }
     }
 
@@ -261,6 +285,19 @@ struct RecordingSheet: View {
             dictation.stop()
         } else {
             Task { await dictation.start() }
+        }
+    }
+
+    private func polish() {
+        dictation.stop()               // 先停止听写,避免转写继续覆盖
+        polishing = true
+        let input = text
+        Task {
+            let result = await LlamaDiaryEngine.shared.polish(input)
+            await MainActor.run {
+                if let result { text = result }
+                polishing = false
+            }
         }
     }
 
