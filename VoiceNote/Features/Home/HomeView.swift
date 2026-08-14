@@ -5,8 +5,14 @@ struct HomeView: View {
     @Environment(Router.self) private var router
     @Environment(\.modelContext) private var context
     @Query(sort: \Entry.createdAt, order: .forward) private var entries: [Entry]
+    @Query private var notes: [DiaryNote]
 
     @State private var showRecording = false
+
+    /// 个人词库:从已保存日记的人物/地点聚合,喂给听写提升专名识别
+    private var speechVocabulary: [String] {
+        Array(Set(notes.flatMap { $0.people + $0.places })).prefix(100).map { $0 }
+    }
 
     var body: some View {
         Screen {
@@ -19,7 +25,7 @@ struct HomeView: View {
         }
         .overlay {
             if showRecording {
-                RecordingSheet(isPresented: $showRecording) { text, seconds in
+                RecordingSheet(isPresented: $showRecording, vocabulary: speechVocabulary) { text, seconds in
                     context.insert(Entry(createdAt: .now, text: text, voiceSeconds: seconds))
                     try? context.save()
                 }
@@ -137,6 +143,7 @@ struct HomeView: View {
 // MARK: - 录音 / 实时听写面板
 struct RecordingSheet: View {
     @Binding var isPresented: Bool
+    var vocabulary: [String] = []          // 个人词库(人名/地名),提升专名识别
     var onSend: (String, Int?) -> Void
 
     @State private var dictation = SpeechDictation()
@@ -167,7 +174,10 @@ struct RecordingSheet: View {
             .clipShape(UnevenRoundedRectangle(topLeadingRadius: Radius.lg, topTrailingRadius: Radius.lg))
             .shadow(color: DC.text.opacity(0.22), radius: 16, y: -4)
         }
-        .task { await dictation.start() }
+        .task {
+            dictation.contextualStrings = vocabulary
+            await dictation.start()
+        }
         .onDisappear { dictation.stop() }
         .onChange(of: dictation.transcript) { _, new in
             if !new.isEmpty { text = new }

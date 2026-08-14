@@ -59,8 +59,21 @@ actor LlamaDiaryEngine {
         """
         guard let raw = bridge.generate(withSystem: sys, user: trimmed + " /no_think",
                                         grammar: nil, maxTokens: 400) else { return nil }
-        let cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Qwen3 关思考后仍会输出空的 <think></think>,无 grammar 约束时会漏进结果,剥掉
+        let cleaned = Self.stripThink(raw)
         return cleaned.isEmpty ? nil : cleaned
+    }
+
+    /// 去掉 Qwen 输出中的 <think>…</think> 块(含未闭合的残留标签)
+    nonisolated static func stripThink(_ s: String) -> String {
+        var out = s
+        while let start = out.range(of: "<think>"),
+              let end = out.range(of: "</think>", range: start.upperBound..<out.endIndex) {
+            out.removeSubrange(start.lowerBound..<end.upperBound)
+        }
+        out = out.replacingOccurrences(of: "<think>", with: "")
+        out = out.replacingOccurrences(of: "</think>", with: "")
+        return out.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: - JSON 模型

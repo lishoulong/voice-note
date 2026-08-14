@@ -20,6 +20,9 @@ final class SpeechDictation {
     let maxSeconds = 60
     var isListening: Bool { status == .listening }
 
+    /// 个人词库:常用人名/地名等,喂给识别器提升专名命中(来自已保存日记的人物/地点)
+    var contextualStrings: [String] = []
+
     private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-CN"))
     private let engine = AVAudioEngine()
     private var request: SFSpeechAudioBufferRecognitionRequest?
@@ -102,6 +105,7 @@ final class SpeechDictation {
         req.shouldReportPartialResults = true
         if #available(iOS 16.0, *) { req.addsPunctuation = true }
         // 不强制 requiresOnDeviceRecognition:让系统选更准的识别(通常联网,人名/生僻词更好)
+        if !contextualStrings.isEmpty { req.contextualStrings = contextualStrings }
         request = req
 
         task = recognizer.recognitionTask(with: req) { [weak self] result, error in
