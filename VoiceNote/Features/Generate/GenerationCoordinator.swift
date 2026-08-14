@@ -53,6 +53,7 @@ final class GenerationCoordinator {
     private func finish(with note: DiaryNote) {
         isRunning = false
         completed = note
+        AppLog.log("协调器: 生成结束, 来源=\(note.sourceLabel)")
         postDoneNotification()
     }
 

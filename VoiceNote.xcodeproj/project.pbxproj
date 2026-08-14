@@ -290,8 +290,10 @@
 					"$(PROJECT_DIR)/Frameworks/build-apple",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于把你的口述实时转写成文字，音频仅在本机处理。";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "用于在本机把语音转写为文字，不上传。";
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -325,8 +327,10 @@
 					"$(PROJECT_DIR)/Frameworks/build-apple",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于把你的口述实时转写成文字，音频仅在本机处理。";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "用于在本机把语音转写为文字，不上传。";
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

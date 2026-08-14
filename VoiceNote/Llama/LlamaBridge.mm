@@ -8,6 +8,13 @@
 // App 退后台时置位;推理循环等待而非提交 GPU(否则 Metal 后端进入错误态)
 static std::atomic<bool> g_suspended{false};
 
+// llama.cpp 日志落盘(真机不连 Xcode 也能事后取证)
+static FILE *g_llamaLog = NULL;
+static void vn_llama_log_cb(enum ggml_log_level level, const char *text, void *user_data) {
+    (void)level; (void)user_data;
+    if (g_llamaLog) { fputs(text, g_llamaLog); fflush(g_llamaLog); }
+}
+
 @implementation LlamaBridge {
     llama_model *_model;
     llama_context *_ctx;
@@ -18,6 +25,12 @@ static std::atomic<bool> g_suspended{false};
 
 + (void)setGloballySuspended:(BOOL)suspended {
     g_suspended.store(suspended);
+}
+
++ (void)redirectLlamaLogToFile:(NSString *)path {
+    if (g_llamaLog) { fclose(g_llamaLog); g_llamaLog = NULL; }
+    g_llamaLog = fopen(path.UTF8String, "a");
+    llama_log_set(vn_llama_log_cb, NULL);
 }
 
 - (BOOL)isLoaded { return _model != NULL && _ctx != NULL && !_broken; }

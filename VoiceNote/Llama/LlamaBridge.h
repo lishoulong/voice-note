@@ -10,6 +10,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// Metal 后端打入错误态)。推理循环见到 YES 会原地等待,回前台置 NO 后自动续跑。
 + (void)setGloballySuspended:(BOOL)suspended;
 
+/// 把 llama.cpp 全部日志(加载/Metal/错误)追加写入指定文件,便于真机离线取证
++ (void)redirectLlamaLogToFile:(NSString *)path;
+
 /// 模型是否已加载
 @property (nonatomic, readonly) BOOL isLoaded;
 

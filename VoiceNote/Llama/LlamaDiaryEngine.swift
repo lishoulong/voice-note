@@ -21,24 +21,48 @@ actor LlamaDiaryEngine {
     private func ensureLoaded() -> Bool {
         let path = Self.modelURL.path
         if bridge.isLoaded, loadedPath == path { return true }
-        guard FileManager.default.fileExists(atPath: path) else { return false }
+        guard FileManager.default.fileExists(atPath: path) else {
+            AppLog.log("llama: 模型文件不存在 \(path)")
+            return false
+        }
+        // llama.cpp 全部日志落盘 Documents/llama.log(真机可用 devicectl 拉回)
+        let llamaLog = FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("llama.log")
+        LlamaBridge.redirectLlamaLog(toFile: llamaLog.path)
+        AppLog.log("llama: 开始加载模型(含后端重建)")
+        let t0 = Date()
         let ok = bridge.loadModel(atPath: path, contextSize: 4096)
+        AppLog.log("llama: 加载\(ok ? "成功" : "失败") 耗时 \(String(format: "%.1f", -t0.timeIntervalSinceNow))s")
         loadedPath = ok ? path : nil
         return ok
     }
 
     /// 把当天条目整理成成稿。失败返回 nil(调用方降级)。
     func makeDraft(entries: [(time: String, text: String)], date: Date) -> DiaryNote? {
+        AppLog.log("整理今日: 开始, \(entries.count) 条")
         guard ensureLoaded() else { return nil }
         let lines = entries.map { "\($0.time) \($0.text)" }.joined(separator: "\n")
         let user = "今天的零散记录：\n\(lines)\n请把以上整理成结构化日记 JSON。/no_think"
 
+        let t0 = Date()
         guard let raw = bridge.generate(withSystem: Self.systemPrompt, user: user,
-                                        grammar: Self.grammar, maxTokens: 1500),
-              let json = Self.extractJSONObject(raw),
-              let data = json.data(using: .utf8),
+                                        grammar: Self.grammar, maxTokens: 1500) else {
+            AppLog.log("整理今日: 生成失败(decode 中断/后端错误), 耗时 \(String(format: "%.0f", -t0.timeIntervalSinceNow))s, 详见 llama.log")
+            return nil
+        }
+        AppLog.log("整理今日: 生成完成, 耗时 \(String(format: "%.0f", -t0.timeIntervalSinceNow))s, 输出 \(raw.count) 字")
+        guard let json = Self.extractJSONObject(raw) else {
+            AppLog.log("整理今日: JSON 提取失败(输出未闭合/被截断), 开头: \(String(raw.prefix(120)))")
+            return nil
+        }
+        guard let data = json.data(using: .utf8),
               let d = try? JSONDecoder().decode(LlamaDraft.self, from: data)
-        else { return nil }
+        else {
+            AppLog.log("整理今日: JSON 解析失败, 开头: \(String(json.prefix(120)))")
+            return nil
+        }
+        AppLog.log("整理今日: 成稿解析成功, \(d.sections.count) 节")
 
         let secs = d.sections.enumerated().map { i, s in
             DiarySection(no: String(format: "%02d", i + 1), title: s.title, body: s.body, fromLabel: "")
