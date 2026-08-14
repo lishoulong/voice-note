@@ -27,6 +27,16 @@ final class SpeechDictation {
 
     func start() async {
         guard !running else { return }
+        // 非真机环境(模拟器 / iOS App on Mac)的音频栈不可靠,直接降级为可打字,
+        // 避免 AVAudioEngine 触发一大片 HALSystem / AudioHardware 报错。
+        #if targetEnvironment(simulator)
+        status = .unavailable
+        return
+        #else
+        if ProcessInfo.processInfo.isiOSAppOnMac {
+            status = .unavailable
+            return
+        }
         guard await requestSpeech(), await requestMic() else { status = .denied; return }
         guard let recognizer, recognizer.isAvailable else { status = .unavailable; return }
         do {
@@ -37,6 +47,7 @@ final class SpeechDictation {
         } catch {
             status = .unavailable
         }
+        #endif
     }
 
     func stop() {
