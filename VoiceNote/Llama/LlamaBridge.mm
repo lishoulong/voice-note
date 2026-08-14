@@ -7,6 +7,7 @@
     llama_model *_model;
     llama_context *_ctx;
     const llama_vocab *_vocab;
+    int _nCtx;
 }
 
 - (BOOL)isLoaded { return _model != NULL && _ctx != NULL; }
@@ -22,7 +23,11 @@
 
     llama_context_params cp = llama_context_default_params();
     cp.n_ctx = (uint32_t)nCtx;
-    cp.n_batch = 512;
+    // n_batch 必须 ≥ 单次提交的 prompt 长度,否则 llama_decode 触发
+    // GGML_ASSERT(n_tokens_all <= cparams.n_batch) 直接 abort。
+    // 设为整个上下文长度,内部按 n_ubatch(默认512)自动分块计算。
+    cp.n_batch = (uint32_t)nCtx;
+    _nCtx = nCtx;
     _ctx = llama_init_from_model(_model, cp);
     if (_ctx == NULL) {
         llama_model_free(_model);
@@ -40,6 +45,8 @@
     if (![self isLoaded]) return nil;
 
     @autoreleasepool {
+        // 清掉上一次生成残留的 KV cache:位置从 0 重新开始,避免旧对话污染与位置溢出
+        llama_memory_clear(llama_get_memory(_ctx), true);
         // 1) 套用模型内置 chat template(Qwen)
         std::string sys = system ? system.UTF8String : "";
         std::string usr = user ? user.UTF8String : "";
@@ -67,6 +74,8 @@
         std::vector<llama_token> tokens(n_prompt);
         if (llama_tokenize(_vocab, prompt.c_str(), (int32_t)prompt.size(),
                            tokens.data(), n_prompt, true, true) < 0) return nil;
+        // prompt 超出上下文(留至少 64 token 生成余量)则放弃,由调用方降级,不能硬塞导致崩溃
+        if (n_prompt >= _nCtx - 64) return nil;
 
         // 3) sampler chain:grammar(结构化) + top_k/top_p/temp + dist
         llama_sampler *smpl = llama_sampler_chain_init(llama_sampler_chain_default_params());
@@ -84,6 +93,7 @@
         llama_batch batch = llama_batch_get_one(tokens.data(), (int32_t)tokens.size());
         llama_token newTok = 0;   // 循环外持有,保证 &newTok 生命周期跨迭代
         for (int i = 0; i < maxTokens; i++) {
+            if (n_prompt + i >= _nCtx - 1) break;   // 触顶上下文即收,防位置溢出
             if (llama_decode(_ctx, batch) != 0) break;
             newTok = llama_sampler_sample(smpl, _ctx, -1);
             if (llama_vocab_is_eog(_vocab, newTok)) break;
