@@ -95,7 +95,7 @@ enum SampleData {
             tags: ["写作", "跑步", "家人"],
             people: ["阿哲", "妈妈"],
             places: ["巷口面馆", "城南河堤"],
-            sourceLabel: "本机 · Qwen3 1.7B"
+            sourceLabel: "占位示例 · 生成失败或未下载模型"
         )
     }
 }

@@ -5,8 +5,11 @@ struct GeneratingView: View {
     @Environment(Router.self) private var router
     @Query(sort: \Entry.createdAt, order: .forward) private var entries: [Entry]
 
+    private var coordinator: GenerationCoordinator { .shared }
+
     @State private var progress: Double = 0
     @State private var stageIndex = 0
+    @State private var elapsed = 0
 
     private let stages: [(no: String, label: String, note: String)] = [
         ("01", "读取今天的条目", "结构化输入"),
@@ -20,7 +23,7 @@ struct GeneratingView: View {
                 VStack(alignment: .leading, spacing: Space.s2) {
                     Kicker(text: sourceLabel)
                     Text("正在整理今天").font(.heading(34))
-                    Text("全程在这台设备上完成,不联网。可以离开此页,完成后通知你。")
+                    Text("全程在这台设备上完成,不联网。可以回到今天页继续记录,完成后横幅和通知会提醒你;切出 App 会暂停,回来自动继续。")
                         .font(.serifBody(14)).lineSpacing(4)
                         .foregroundStyle(DC.neutral700)
                 }
@@ -31,7 +34,7 @@ struct GeneratingView: View {
                         Text(stages[min(stageIndex, 2)].label)
                             .font(.serifBody(14)).foregroundStyle(DC.accent700)
                         Spacer()
-                        Text(etaLabel).font(.serifBody(12.5)).monospacedDigit()
+                        Text(elapsedLabel).font(.serifBody(12.5)).monospacedDigit()
                             .foregroundStyle(DC.neutral600)
                     }
                 }
@@ -55,7 +58,7 @@ struct GeneratingView: View {
                 HStack(spacing: Space.s3) {
                     Button("后台运行") { router.go(.home) }
                         .buttonStyle(SecondaryButton())
-                    Button("取消") { router.go(.home) }
+                    Button("回到今天") { router.go(.home) }
                         .buttonStyle(GhostButton())
                 }
             }
@@ -67,22 +70,35 @@ struct GeneratingView: View {
 
     private var sourceLabel: String { DiaryGenerator.sourceLabel }
 
-    private var etaLabel: String {
-        "约剩 \(max(0, Int((1 - progress) * 40))) 秒"
+    private var elapsedLabel: String {
+        String(format: "已进行 %02d:%02d", elapsed / 60, elapsed % 60)
     }
 
     private func run() async {
-        // 并发启动真实生成(不可用时立即返回 nil);同时跑进度动画给出等待感
-        async let generated = DiaryGenerator.generate(from: entries, date: .now)
-        for step in 1...20 {
-            try? await Task.sleep(nanoseconds: 150_000_000)
-            withAnimation(.linear(duration: 0.15)) { progress = Double(step) / 22 }
-            stageIndex = min(2, Int(Double(step) / 20 * 3))
+        // 若已有完成待查看的成稿,直接呈现;否则启动(协调器持有任务,离开本页不中断)
+        if let n = coordinator.take() {
+            router.showResult(n)
+            return
         }
-        let note = (await generated) ?? SampleData.makeTodayDraft()
-        withAnimation { progress = 1; stageIndex = 2 }
-        try? await Task.sleep(nanoseconds: 200_000_000)
-        router.showResult(note)
+        coordinator.start(entries: entries)
+
+        var ticks = 0
+        while coordinator.isRunning && !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            ticks += 1
+            elapsed = ticks / 2
+            // 渐近推进到 92%,真实完成时补到 100%
+            withAnimation(.linear(duration: 0.4)) {
+                progress += (0.92 - progress) * 0.035
+            }
+            stageIndex = progress < 0.3 ? 0 : (progress < 0.7 ? 1 : 2)
+        }
+        guard !Task.isCancelled else { return }   // 用户已离开,由横幅/通知承接
+        if let n = coordinator.take() {
+            withAnimation { progress = 1; stageIndex = 2 }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            router.showResult(n)
+        }
     }
 }
 

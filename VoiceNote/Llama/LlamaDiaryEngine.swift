@@ -34,7 +34,7 @@ actor LlamaDiaryEngine {
         let user = "今天的零散记录：\n\(lines)\n请把以上整理成结构化日记 JSON。/no_think"
 
         guard let raw = bridge.generate(withSystem: Self.systemPrompt, user: user,
-                                        grammar: Self.grammar, maxTokens: 800),
+                                        grammar: Self.grammar, maxTokens: 1500),
               let json = Self.extractJSONObject(raw),
               let data = json.data(using: .utf8),
               let d = try? JSONDecoder().decode(LlamaDraft.self, from: data)
@@ -112,7 +112,7 @@ actor LlamaDiaryEngine {
     你是日记整理助手。把用户当天的零散记录整理成一篇结构化中文日记，只输出 JSON。
 
     严格遵守：
-    1. 按主题逻辑分节（例如 工作、关系、状态），把相关的多条记录合并进同一节；总共 2 到 3 节，不要一条一节，也不要按时间先后分节。
+    1. 按主题逻辑分节（例如 工作、关系、状态、阅读），把相关的多条记录合并进同一节；按内容多少分 2 到 5 节，不要一条一节，也不要按时间先后分节。必须覆盖每一条记录提到的事件，一件都不能遗漏。
     2. 每节 body 是连贯自然的成稿段落，不要保留时间戳（如 08:12 这种数字）。
     3. 人名、地名等专有名词照抄原文，不得改写或杜撰。
     4. quote 从当天记录本身提炼一句最有感受的话，不要套用现成名言。
@@ -122,7 +122,7 @@ actor LlamaDiaryEngine {
 
     static let grammar = #"""
     root ::= "{" ws "\"title\":" ws string "," ws "\"mood\":" ws string "," ws "\"quote\":" ws string "," ws "\"sections\":" ws sections "," ws "\"tags\":" ws strlist "," ws "\"people\":" ws strlist "," ws "\"places\":" ws strlist ws "}"
-    sections ::= "[" ws section (ws "," ws section){1,2} ws "]"
+    sections ::= "[" ws section (ws "," ws section){1,4} ws "]"
     section ::= "{" ws "\"title\":" ws string "," ws "\"body\":" ws string ws "}"
     strlist ::= "[" ws (string (ws "," ws string)*)? ws "]"
     string ::= "\"" ([^"\\] | "\\" .)* "\""

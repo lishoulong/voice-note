@@ -102,8 +102,43 @@ struct HomeView: View {
     }
 
     // MARK: 底栏
+    private var coordinator: GenerationCoordinator { .shared }
+
     private var bottomBar: some View {
         VStack(spacing: 0) {
+            // 生成完成/进行中的承接条(点「后台运行」离开后由这里接住)
+            if coordinator.completed != nil {
+                Button {
+                    if let n = coordinator.take() { router.showResult(n) }
+                } label: {
+                    HStack {
+                        Text("今日成稿已就绪").font(.serifBody(13.5))
+                        Spacer()
+                        Text("查看").font(.serifBody(13.5)).foregroundStyle(DC.accent800).underline()
+                    }
+                    .padding(.horizontal, Space.s4)
+                    .padding(.vertical, Space.s3)
+                    .frame(maxWidth: .infinity)
+                    .background(DC.accent100)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            } else if coordinator.isRunning {
+                Button { router.go(.generating) } label: {
+                    HStack(spacing: Space.s2) {
+                        ProgressView().controlSize(.mini)
+                        Text("正在本机整理今天…").font(.serifBody(13)).foregroundStyle(DC.accent700)
+                        Spacer()
+                        Text("查看进度").font(.serifBody(13)).foregroundStyle(DC.accent700).underline()
+                    }
+                    .padding(.horizontal, Space.s4)
+                    .padding(.vertical, Space.s3)
+                    .frame(maxWidth: .infinity)
+                    .background(DC.accent100)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
             HRule()
             Button { router.go(.generating) } label: {
                 HStack {
