@@ -180,6 +180,7 @@ struct RecordingSheet: View {
                 Circle()
                     .fill(dictation.isListening ? DC.accent : DC.neutral400)
                     .frame(width: 6, height: 6)
+                    .modifier(PulseWhileListening(active: dictation.isListening))
                 Kicker(text: headerLabel,
                        color: dictation.isListening ? DC.accent700 : DC.neutral600)
             }
@@ -201,6 +202,8 @@ struct RecordingSheet: View {
     private var editor: some View {
         TextField("说话吧,文字会实时出现;也可直接打字…", text: $text, axis: .vertical)
             .font(.serifBody(15.5)).lineSpacing(6)
+            .foregroundStyle(DC.text)          // 显式深色文字,不随系统深浅色漂移
+            .tint(DC.accent)                   // 光标用 accent
             .frame(minHeight: 92, alignment: .topLeading)
             .padding(Space.s3)
             .background(DC.bg)
@@ -245,13 +248,19 @@ struct RecordingSheet: View {
         }
     }
 
+    // 正在听:真实音量驱动跳动;未在听:低幅呼吸,一眼可辨状态
     private var waveform: some View {
-        HStack(alignment: .center, spacing: 3) {
-            ForEach(dictation.levels.indices, id: \.self) { i in
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(DC.accent400)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: max(3, 34 * dictation.levels[i]))
+        TimelineView(.animation(minimumInterval: 0.12, paused: dictation.isListening)) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate
+            HStack(alignment: .center, spacing: 3) {
+                ForEach(dictation.levels.indices, id: \.self) { i in
+                    let live = dictation.levels[i]
+                    let idle = 0.10 + 0.06 * abs(sin(t * 1.8 + Double(i) * 0.55))
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(dictation.isListening ? DC.accent400 : DC.neutral300)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: max(3, 34 * (dictation.isListening ? live : idle)))
+                }
             }
         }
         .frame(height: 34)
@@ -311,6 +320,19 @@ struct RecordingSheet: View {
         let secs = dictation.seconds > 0 ? dictation.seconds : nil
         onSend(text, secs)
         withAnimation { isPresented = false }
+    }
+}
+
+// 状态点脉冲:正在听时呼吸闪烁,提示识别进行中
+struct PulseWhileListening: ViewModifier {
+    var active: Bool
+    @State private var on = false
+    func body(content: Content) -> some View {
+        content
+            .opacity(active ? (on ? 1 : 0.25) : 1)
+            .animation(active ? .easeInOut(duration: 0.9).repeatForever(autoreverses: true) : .default,
+                       value: on)
+            .onChange(of: active, initial: true) { _, now in on = now }
     }
 }
 

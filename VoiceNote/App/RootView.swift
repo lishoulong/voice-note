@@ -19,6 +19,7 @@ struct RootView: View {
             }
         }
         .environment(router)
+        .preferredColorScheme(.light)   // 设计为 light-only 杂志风,锁定浅色外观
     }
 }
 

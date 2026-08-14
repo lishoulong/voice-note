@@ -133,7 +133,7 @@ final class SpeechDictation {
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self, self.running else { return }
+                guard let self, self.running, self.status == .listening else { return }
                 self.seconds += 1
                 if self.seconds >= self.maxSeconds { self.stop() }
             }
