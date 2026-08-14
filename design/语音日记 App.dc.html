@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="style/styles.css">
+<script src="style/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #e6e4e2; }
+  a { color: var(--color-accent-700); }
+  a:hover { color: var(--color-accent-600); }
+  @keyframes barShift { from { background-position: 0 0; } to { background-position: 16px 0; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+</style>
+</helmet>
+
+<section style="display:flex; flex-direction:column; gap:var(--space-8); padding:56px 64px 96px; font-family:var(--font-body); color:var(--color-text)">
+
+  <div id="1a" style="display:flex; flex-direction:column; gap:var(--space-8)">
+
+    <header style="display:flex; flex-direction:column; gap:var(--space-3); max-width:760px">
+      <div style="display:flex; align-items:center; gap:var(--space-3)">
+        <span class="tag tag-outline" style="font-variant-numeric:tabular-nums">1a</span>
+        <span style="font-family:var(--font-body); font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-neutral-600)">Interaction &amp; UI · iOS 主线 + Android 关键页</span>
+      </div>
+      <h1 style="font-family:var(--font-heading); font-weight:400; font-size:52px; line-height:1.08; margin:0">语音口述日记 · 本地整理</h1>
+      <p style="margin:0; font-size:15.5px; line-height:1.75; text-align:justify; color:var(--color-neutral-800)">全流程围绕两条工程约束设计：模型 1.5–2.9&nbsp;GB 需先分档下载，本地生成需 30–150&nbsp;秒。因此下载不阻断记录、生成走「进度条 + 阶段文案」的显式等待态，云端兜底始终是用户手动开启的降级选项。左侧第一台设备<strong style="font-weight:500">可点击</strong>：写一条随手记 → 整理今日 → 查看成稿 → 保存进日记。</p>
+    </header>
+
+    <div class="hr" style="max-width:760px"></div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:64px; align-items:flex-start">
+
+      <div style="display:flex; flex-direction:column; gap:var(--space-4)">
+        <div style="display:flex; align-items:baseline; gap:var(--space-3)">
+          <span style="font-family:var(--font-heading); font-size:24px; font-weight:600">核心流程原型</span>
+          <span class="tag tag-accent">可点击</span>
+        </div>
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px" width="{{ 402 }}" height="{{ 874 }}" keyboard="{{ editing }}">
+          <div style="height:100%; display:flex; flex-direction:column; padding-top:54px; background:var(--color-bg); font-family:var(--font-body)">
+
+            <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+              <div style="height:100%; display:flex; flex-direction:column; position:relative">
+                <div style="display:flex; align-items:flex-end; justify-content:space-between; padding:var(--space-3) var(--space-4) var(--space-3); border-bottom:1px solid var(--color-divider)">
+                  <div style="display:flex; flex-direction:column; gap:2px">
+                    <span style="font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">Thu · 2026.08.14</span>
+                    <span style="font-family:var(--font-heading); font-size:27px; font-weight:600; line-height:1.1">今天</span>
+                  </div>
+                  <div style="display:flex; gap:var(--space-2)">
+                    <button class="btn btn-ghost btn-icon" onClick="{{ goHistory }}" aria-label="历史" style="width:38px; height:38px">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 8v4l3 2"></path></svg>
+                    </button>
+                    <button class="btn btn-ghost btn-icon" onClick="{{ goAbout }}" aria-label="关于我" style="width:38px; height:38px">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 21a7 7 0 0 1 14 0"></path></svg>
+                    </button>
+                    <button class="btn btn-ghost btn-icon" onClick="{{ goSettings }}" aria-label="设置" style="width:38px; height:38px">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div style="flex:1; overflow:auto; padding:var(--space-4) var(--space-4) 0">
+                  <sc-for list="{{ entries }}" as="e" hint-placeholder-count="4">
+                    <div onClick="{{ e.onTap }}" style="display:grid; grid-template-columns:56px 1fr; gap:var(--space-3); padding:var(--space-3) 0; border-bottom:1px solid var(--color-divider); cursor:text; background:{{ e.rowBg }}">
+                      <span style="font-size:12.5px; font-variant-numeric:tabular-nums; color:var(--color-neutral-600); padding-top:3px">{{ e.time }}</span>
+                      <div style="display:flex; flex-direction:column; gap:6px">
+                        <sc-if value="{{ e.editing }}" hint-placeholder-val="{{ false }}">
+                          <textarea class="input" value="{{ editText }}" onChange="{{ onEditText }}" rows="{{ 3 }}" style="font-size:15px; line-height:1.7; font-family:var(--font-body); background:transparent; border:0; border-bottom:1px solid var(--color-accent); border-radius:0; padding:0 0 4px; resize:none; width:100%"></textarea>
+                        </sc-if>
+                        <sc-if value="{{ e.reading }}" hint-placeholder-val="{{ true }}">
+                          <p style="margin:0; font-size:15px; line-height:1.7; text-wrap:pretty">{{ e.text }}</p>
+                        </sc-if>
+                        <sc-if value="{{ e.voiceShown }}" hint-placeholder-val="{{ false }}">
+                          <span style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"></path></svg>
+                            语音 · {{ e.voice }}
+                          </span>
+                        </sc-if>
+                      </div>
+                    </div>
+                  </sc-for>
+                  <div onClick="{{ tapTail }}" style="min-height:120px; padding:var(--space-3) 0 var(--space-6); cursor:text; display:flex">
+                    <sc-if value="{{ tailHintShown }}" hint-placeholder-val="{{ true }}">
+                      <span style="font-size:13px; color:var(--color-neutral-500)">点这里接着写 · 双击某条可修改</span>
+                    </sc-if>
+                  </div>
+                </div>
+
+                <div style="border-top:1px solid var(--color-divider); background:var(--color-neutral-100)">
+                  <sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); padding:var(--space-2) var(--space-4)">
+                      <div style="display:flex; align-items:center; gap:var(--space-4); color:var(--color-neutral-700)">
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h11a5 5 0 0 1 0 10h-5"></path></svg>
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m15 14 5-5-5-5"></path><path d="M20 9H9a5 5 0 0 0 0 10h5"></path></svg>
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 3H5v18h4M15 3h4v18h-4"></path></svg>
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M20.6 13.4 12 22H7a3 3 0 0 1-3-3v-5l8.6-8.6a3 3 0 0 1 4.2 0l3.8 3.8a3 3 0 0 1 0 4.2z"></path><path d="M7.5 10.5 4 7"></path></svg>
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
+                      </div>
+                      <button class="btn btn-ghost" onClick="{{ endEdit }}" style="font-size:15px; color:var(--color-accent-700)">完成</button>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ notEditing }}" hint-placeholder-val="{{ true }}">
+                    <button onClick="{{ startGenerate }}" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); padding:var(--space-3) var(--space-4); background:transparent; border:0; border-bottom:1px solid var(--color-divider); cursor:pointer; font-family:var(--font-body); color:var(--color-text); text-align:left" style-hover="background:var(--color-accent-100)">
+                      <span style="font-size:13px; color:var(--color-neutral-700); font-variant-numeric:tabular-nums">{{ countLabel }}</span>
+                      <span style="display:inline-flex; align-items:center; gap:6px; font-size:14px; color:var(--color-accent-700); border-bottom:1px solid var(--color-accent-400); padding-bottom:1px">整理今日笔记
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+                      </span>
+                    </button>
+                    <div style="display:flex; flex-direction:column; gap:var(--space-2); padding:var(--space-3) var(--space-4) 34px">
+                      <button class="btn btn-primary btn-block" onClick="{{ startRec }}" style="height:52px; display:flex; align-items:center; justify-content:center; gap:var(--space-2); font-size:16px">
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"></path></svg>
+                        口述 · 点一下开始，长按即按即说
+                      </button>
+                    </div>
+                  </sc-if>
+                </div>
+
+                <sc-if value="{{ recording }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute; inset:0; background:color-mix(in srgb, var(--color-neutral-900) 30%, transparent); display:flex; flex-direction:column; justify-content:flex-end">
+                    <div style="background:var(--color-bg); border-top:1px solid var(--color-divider); box-shadow:var(--shadow-lg); padding:var(--space-4) var(--space-4) 34px; display:flex; flex-direction:column; gap:var(--space-3)">
+                      <div style="display:flex; align-items:baseline; justify-content:space-between">
+                        <span style="display:inline-flex; align-items:center; gap:var(--space-2); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-accent-700)">
+                          <span style="width:6px; height:6px; border-radius:50%; background:var(--color-accent); animation:pulse 1.1s ease-in-out infinite"></span>
+                          Listening · 本机实时转写
+                        </span>
+                        <span style="font-size:12.5px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">{{ recTime }}</span>
+                      </div>
+                      <textarea class="input" value="{{ confirmText }}" onChange="{{ onConfirmText }}" rows="{{ 5 }}" placeholder="说话吧，文字会实时出现在这里…" style="font-size:15.5px; line-height:1.8; background:var(--color-bg); resize:none; font-family:var(--font-body)"></textarea>
+                      <sc-if value="{{ polishing }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex; align-items:center; gap:var(--space-2); font-size:13px; color:var(--color-accent-700)">
+                          <span style="width:10px; height:10px; border:1px solid var(--color-accent); border-top-color:transparent; border-radius:50%; animation:spin .8s linear infinite"></span>
+                          轻润色中 · 本机 {{ tierLabel }} · 只断句去口水词
+                        </div>
+                      </sc-if>
+                      <div style="display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); padding-bottom:var(--space-3); border-bottom:1px solid var(--color-divider)">
+                        <button onClick="{{ togglePolish }}" style="background:transparent; border:0; padding:0; cursor:pointer; font-family:var(--font-body); font-size:13.5px; color:var(--color-accent-700); border-bottom:1px solid var(--color-accent-400)">{{ polishLabel }}</button>
+                        <span style="font-size:11.5px; color:var(--color-neutral-600)">{{ micModeLabel }}</span>
+                      </div>
+                      <div style="display:flex; justify-content:space-between; align-items:baseline; font-size:11.5px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">
+                        <span>单条上限 01:00 · 超时自动收尾</span>
+                        <span>{{ recTime }} / 01:00</span>
+                      </div>
+                      <div style="display:flex; align-items:flex-end; gap:3px; height:34px">
+                        <sc-for list="{{ levels }}" as="l" hint-placeholder-count="24">
+                          <div style="flex:1; background:var(--color-accent-400); height:{{ l.h }}"></div>
+                        </sc-for>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:var(--space-3)">
+                        <button class="btn btn-ghost" onClick="{{ cancelRec }}" style="flex:1">丢弃</button>
+                        <button class="btn btn-secondary btn-icon" onClick="{{ toggleMic }}" aria-label="暂停或继续" style="width:52px; height:52px; flex-shrink:0">
+                          <sc-if value="{{ micOn }}" hint-placeholder-val="{{ true }}">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"></path></svg>
+                          </sc-if>
+                          <sc-if value="{{ micOff }}" hint-placeholder-val="{{ false }}">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 9v3a3 3 0 0 0 5.1 2.1"></path><path d="M15 10V5a3 3 0 0 0-5.7-1.3"></path><path d="M19 10v2a7 7 0 0 1-10.8 5.9M5 5l14 14M12 19v3"></path></svg>
+                          </sc-if>
+                        </button>
+                        <button class="btn btn-primary" onClick="{{ commitEntry }}" disabled="{{ sendDisabled }}" style="flex:2; height:52px; font-size:16px">发送到笔记</button>
+                      </div>
+                    </div>
+                  </div>
+                </sc-if>
+
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isGen }}" hint-placeholder-val="{{ false }}">
+              <div style="height:100%; display:flex; flex-direction:column; justify-content:center; gap:var(--space-8); padding:var(--space-6) var(--space-6) 60px">
+                <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+                  <span style="font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-neutral-600)">On-device · Qwen3 {{ tierLabel }}</span>
+                  <h2 style="font-family:var(--font-heading); font-weight:400; font-size:34px; line-height:1.15; margin:0">正在整理今天</h2>
+                  <p style="margin:0; font-size:14px; line-height:1.7; color:var(--color-neutral-700); text-align:justify">全程在这台设备上完成，不联网。可以离开此页，完成后通知你。</p>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:var(--space-3)">
+                  <div style="height:3px; background:var(--color-neutral-300); position:relative; overflow:hidden">
+                    <div style="position:absolute; inset:0 auto 0 0; background:var(--color-accent); transition:width .4s linear; width:{{ progressPct }}"></div>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:baseline">
+                    <span style="font-size:14px; color:var(--color-accent-700)">{{ stageLabel }}</span>
+                    <span style="font-size:12.5px; font-variant-numeric:tabular-nums; color:var(--color-neutral-600)">{{ etaLabel }}</span>
+                  </div>
+                </div>
+
+                <div style="display:flex; flex-direction:column">
+                  <sc-for list="{{ stages }}" as="s" hint-placeholder-count="3">
+                    <div style="display:grid; grid-template-columns:22px 1fr; gap:var(--space-3); align-items:baseline; padding:var(--space-3) 0; border-bottom:1px solid var(--color-divider); opacity:{{ s.opacity }}">
+                      <span style="font-size:12px; font-variant-numeric:tabular-nums; color:var(--color-neutral-600)">{{ s.no }}</span>
+                      <div style="display:flex; justify-content:space-between; gap:var(--space-3)">
+                        <span style="font-size:14.5px">{{ s.label }}</span>
+                        <span style="font-size:12px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">{{ s.note }}</span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <div style="display:flex; gap:var(--space-3); align-items:center">
+                  <button class="btn btn-secondary" onClick="{{ goHome }}" style="flex:1">后台运行</button>
+                  <button class="btn btn-ghost" onClick="{{ goHome }}">取消</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isResult }}" hint-placeholder-val="{{ false }}">
+              <div style="height:100%; display:flex; flex-direction:column">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider)">
+                  <button class="btn btn-ghost" onClick="{{ goHome }}" style="padding-left:0">返回</button>
+                  <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-neutral-600)">Draft · 可编辑</span>
+                </div>
+                <div style="flex:1; overflow:auto; padding:var(--space-4) var(--space-4) var(--space-6); display:flex; flex-direction:column; gap:var(--space-4)">
+                  <div style="display:flex; flex-direction:column; gap:var(--space-1)">
+                    <span style="font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">2026.08.14</span>
+                    <h2 style="font-family:var(--font-heading); font-weight:600; font-size:29px; line-height:1.15; margin:0">凉了一点的一天</h2>
+                  </div>
+
+                  <div style="display:flex; flex-wrap:wrap; gap:var(--space-2); align-items:center">
+                    <span style="font-size:12px; color:var(--color-neutral-600)">mood</span>
+                    <span class="tag tag-accent">平静 · 略疲惫</span>
+                    <span style="width:1px; height:14px; background:var(--color-divider)"></span>
+                    <span class="tag tag-outline">#写作</span>
+                    <span class="tag tag-outline">#跑步</span>
+                    <span class="tag tag-outline">#家人</span>
+                  </div>
+
+                  <div style="border-top:1px solid var(--color-divider); border-bottom:1px solid var(--color-divider); padding:var(--space-3) 0">
+                    <p style="margin:0; font-family:var(--font-heading); font-style:italic; font-size:20px; line-height:1.5; text-align:center; color:var(--color-accent-800)">「我们其实都在等一个更安静的工作节奏。」</p>
+                  </div>
+
+                  <div style="display:flex; flex-direction:column; gap:var(--space-4)">
+                    <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="3">
+                      <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+                        <div style="display:flex; align-items:baseline; gap:var(--space-3); padding-bottom:var(--space-1)">
+                          <span style="font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-accent-700); font-variant-numeric:tabular-nums">{{ sec.no }}</span>
+                          <span style="font-family:var(--font-heading); font-size:19px; font-weight:600">{{ sec.title }}</span>
+                          <span style="flex:1; height:1px; background:var(--color-divider)"></span>
+                          <span style="font-size:11px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">{{ sec.from }}</span>
+                        </div>
+                        <p style="margin:0; font-size:15.5px; line-height:1.85; text-align:justify; text-wrap:pretty">{{ sec.body }}</p>
+                      </div>
+                    </sc-for>
+                  </div>
+
+                  <p style="margin:0; font-size:12.5px; line-height:1.7; color:var(--color-neutral-600); text-align:justify">按逻辑分节，不按时间。双击任意段落可就地改写；节标题也可改。</p>
+
+                  <div class="hr"></div>
+
+                  <div style="display:grid; grid-template-columns:64px 1fr; gap:var(--space-2) var(--space-3); font-size:14px">
+                    <span style="color:var(--color-neutral-600)">人物</span>
+                    <span>阿哲 · 妈妈</span>
+                    <span style="color:var(--color-neutral-600)">地点</span>
+                    <span>巷口面馆 · 城南河堤</span>
+                    <span style="color:var(--color-neutral-600)">来源</span>
+                    <span style="font-variant-numeric:tabular-nums">{{ sourceLabel }}</span>
+                  </div>
+
+                  <button onClick="{{ toggleSource }}" style="align-self:flex-start; background:transparent; border:0; padding:0; cursor:pointer; font-family:var(--font-body); font-size:13.5px; color:var(--color-accent-700); border-bottom:1px solid var(--color-accent-400)">{{ sourceToggleLabel }}</button>
+
+                  <sc-if value="{{ showSource }}" hint-placeholder-val="{{ false }}">
+                    <div style="border-left:1px solid var(--color-accent-400); padding-left:var(--space-3); display:flex; flex-direction:column; gap:var(--space-2)">
+                      <sc-for list="{{ entries }}" as="e" hint-placeholder-count="3">
+                        <div style="display:flex; gap:var(--space-3); font-size:13px; color:var(--color-neutral-700)">
+                          <span style="font-variant-numeric:tabular-nums; color:var(--color-neutral-600)">{{ e.time }}</span>
+                          <span style="line-height:1.6">{{ e.text }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+
+                <div style="border-top:1px solid var(--color-divider); background:var(--color-neutral-100); padding:var(--space-3) var(--space-4) 34px; display:flex; flex-direction:column; gap:var(--space-2)">
+                  <sc-if value="{{ saved }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; align-items:center; gap:var(--space-2); font-size:13px; color:var(--color-accent-700)">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                      已存入日记 · 2026.08.14
+                    </div>
+                  </sc-if>
+                  <div style="display:flex; gap:var(--space-2)">
+                    <button class="btn btn-secondary" onClick="{{ startGenerate }}" style="flex:1">重新生成</button>
+                    <button class="btn btn-primary" onClick="{{ onSave }}" style="flex:1.4">{{ saveLabel }}</button>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isHistory }}" hint-placeholder-val="{{ false }}">
+              <div style="height:100%; display:flex; flex-direction:column">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider)">
+                  <button class="btn btn-ghost" onClick="{{ goHome }}" style="padding-left:0">今天</button>
+                  <span style="font-family:var(--font-heading); font-size:20px; font-weight:600">日记</span>
+                  <button class="btn btn-ghost btn-icon" aria-label="搜索" style="width:38px; height:38px">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg>
+                  </button>
+                </div>
+                <sc-if value="{{ hasPending }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ goCatchup }}" style="display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); width:100%; padding:var(--space-3) var(--space-4); background:var(--color-accent-100); border:0; border-bottom:1px solid var(--color-accent-300); cursor:pointer; font-family:var(--font-body); color:var(--color-text); text-align:left" style-hover="background:var(--color-accent-200)">
+                    <span style="display:flex; flex-direction:column; gap:2px">
+                      <span style="font-size:13.5px">未整理 · {{ pendingLabel }}</span>
+                      <span style="font-size:11.5px; color:var(--color-accent-800); line-height:1.5">这些天只有零散条目，没有成稿，也不计入「关于我」</span>
+                    </span>
+                    <span style="flex-shrink:0; font-size:13.5px; color:var(--color-accent-800); border-bottom:1px solid var(--color-accent-500)">补上</span>
+                  </button>
+                </sc-if>
+                <div style="flex:1; overflow:auto; padding:var(--space-4) var(--space-4) 44px; display:flex; flex-direction:column; gap:var(--space-3)">
+                  <sc-for list="{{ history }}" as="h" hint-placeholder-count="4">
+                    <article class="card" style="display:flex; flex-direction:column; gap:var(--space-2); padding:var(--space-4); cursor:pointer" style-hover="border-color:var(--color-accent-400)">
+                      <div style="display:flex; justify-content:space-between; align-items:baseline">
+                        <span style="font-size:11.5px; letter-spacing:0.14em; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">{{ h.date }}</span>
+                        <span style="font-size:11.5px; color:var(--color-neutral-600)">{{ h.mood }}</span>
+                      </div>
+                      <h3 style="font-family:var(--font-heading); font-size:21px; font-weight:600; margin:0; line-height:1.2">{{ h.title }}</h3>
+                      <p style="margin:0; font-size:14px; line-height:1.7; color:var(--color-neutral-800); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">{{ h.excerpt }}</p>
+                      <div style="display:flex; gap:var(--space-2); flex-wrap:wrap; padding-top:2px">
+                        <span class="tag tag-outline">{{ h.t1 }}</span>
+                        <span class="tag tag-outline">{{ h.t2 }}</span>
+                      </div>
+                    </article>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isCatchup }}" hint-placeholder-val="{{ false }}">
+              <div style="height:100%; display:flex; flex-direction:column">
+                <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider)">
+                  <button class="btn btn-ghost" onClick="{{ goHistory }}" style="padding-left:0">返回</button>
+                  <span style="font-family:var(--font-heading); font-size:20px; font-weight:600">补稿</span>
+                </div>
+
+                <div style="padding:var(--space-4) var(--space-4) var(--space-3); display:flex; flex-direction:column; gap:var(--space-3); border-bottom:1px solid var(--color-divider)">
+                  <p style="margin:0; font-size:13.5px; line-height:1.75; color:var(--color-neutral-700); text-align:justify">补稿会逐天在本机生成正文，每天约 1–2 分钟。默认排在充电且连 Wi-Fi 的夜间进行，不占用你现在的记录。</p>
+                  <div style="display:flex; gap:var(--space-2)">
+                    <button class="btn btn-secondary" onClick="{{ pickRecent }}" style="flex:1; font-size:13.5px">最近 7 天</button>
+                    <button class="btn btn-secondary" onClick="{{ pickAll }}" style="flex:1; font-size:13.5px">全部</button>
+                    <button class="btn btn-ghost" onClick="{{ pickNone }}" style="flex:1; font-size:13.5px">手动挑</button>
+                  </div>
+                </div>
+
+                <div style="flex:1; overflow:auto">
+                  <sc-for list="{{ pending }}" as="p" hint-placeholder-count="5">
+                    <button onClick="{{ p.onToggle }}" style="display:grid; grid-template-columns:22px 1fr auto; gap:var(--space-3); align-items:start; width:100%; padding:var(--space-3) var(--space-4); background:{{ p.bg }}; border:0; border-bottom:1px solid var(--color-divider); cursor:pointer; font-family:var(--font-body); color:var(--color-text); text-align:left" style-hover="background:var(--color-accent-100)">
+                      <span style="width:15px; height:15px; margin-top:3px; border:1px solid {{ p.boxBorder }}; background:{{ p.boxFill }}; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; color:var(--color-bg)">
+                        <sc-if value="{{ p.checked }}" hint-placeholder-val="{{ false }}">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                        </sc-if>
+                      </span>
+                      <span style="display:flex; flex-direction:column; gap:4px">
+                        <span style="font-size:14px; font-variant-numeric:tabular-nums">{{ p.date }} · {{ p.count }}</span>
+                        <span style="font-size:12.5px; line-height:1.6; color:var(--color-neutral-700)">{{ p.preview }}</span>
+                      </span>
+                      <span style="font-size:11.5px; color:{{ p.statusColor }}; padding-top:2px; white-space:nowrap">{{ p.status }}</span>
+                    </button>
+                  </sc-for>
+                  <sc-if value="{{ noPending }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:var(--space-8) var(--space-6); display:flex; flex-direction:column; gap:var(--space-2); align-items:center; text-align:center">
+                      <span style="font-family:var(--font-heading); font-size:22px; font-weight:600">都补齐了</span>
+                      <p style="margin:0; font-size:13.5px; line-height:1.75; color:var(--color-neutral-700)">这些天已并入历史，并计入下一次「关于我」的重算。</p>
+                    </div>
+                  </sc-if>
+                </div>
+
+                <div style="border-top:1px solid var(--color-divider); background:var(--color-neutral-100); padding:var(--space-3) var(--space-4) 34px; display:flex; flex-direction:column; gap:var(--space-2)">
+                  <sc-if value="{{ queued }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; align-items:center; gap:var(--space-2); font-size:13px; color:var(--color-accent-700)">
+                      <span style="width:10px; height:10px; border:1px solid var(--color-accent); border-top-color:transparent; border-radius:50%; animation:spin .8s linear infinite"></span>
+                      {{ queueLabel }}
+                    </div>
+                  </sc-if>
+                  <button class="btn btn-primary btn-block" onClick="{{ runCatchup }}" disabled="{{ catchupDisabled }}" style="height:48px">{{ catchupLabel }}</button>
+                  <span style="font-size:11.5px; color:var(--color-neutral-600); text-align:center">补稿只读你自己的条目，全程本机</span>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isAbout }}" hint-placeholder-val="{{ false }}">
+              <div style="height:100%; display:flex; flex-direction:column">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider)">
+                  <button class="btn btn-ghost" onClick="{{ goHome }}" style="padding-left:0">今天</button>
+                  <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">user.md</span>
+                </div>
+                <div style="flex:1; overflow:auto; padding:var(--space-4) var(--space-4) 44px; display:flex; flex-direction:column; gap:var(--space-6)">
+                  <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+                    <span style="font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">每天 23:30 自动重算 · 更新后推一条通知</span>
+                    <h2 style="font-family:var(--font-heading); font-weight:400; font-size:32px; line-height:1.15; margin:0">关于我</h2>
+                    <div style="display:flex; align-items:baseline; gap:var(--space-4); padding-top:var(--space-1); font-variant-numeric:tabular-nums">
+                      <span style="display:flex; flex-direction:column"><span style="font-family:var(--font-heading); font-size:26px; font-weight:600; line-height:1.1">214</span><span style="font-size:11px; letter-spacing:0.14em; color:var(--color-neutral-600)">条</span></span>
+                      <span style="display:flex; flex-direction:column"><span style="font-family:var(--font-heading); font-size:26px; font-weight:600; line-height:1.1">68</span><span style="font-size:11px; letter-spacing:0.14em; color:var(--color-neutral-600)">天</span></span>
+                      <span style="display:flex; flex-direction:column"><span style="font-family:var(--font-heading); font-size:26px; font-weight:600; line-height:1.1">12</span><span style="font-size:11px; letter-spacing:0.14em; color:var(--color-neutral-600)">连续</span></span>
+                    </div>
+                    <div style="display:flex; gap:2px; padding-top:var(--space-1)">
+                      <sc-for list="{{ streak }}" as="d" hint-placeholder-count="30">
+                        <div style="flex:1; height:12px; background:{{ d.bg }}"></div>
+                      </sc-for>
+                    </div>
+                    <p style="margin:0; font-size:13.5px; line-height:1.75; color:var(--color-neutral-700); text-align:justify">这份画像只从你自己的日记里长出来，全程在本机推理。每句判断都能点回它依据的那几天。</p>
+                  </div>
+
+                  <div style="display:flex; flex-direction:column; gap:var(--space-4)">
+                    <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+                      <div style="display:flex; justify-content:space-between; align-items:baseline; padding-bottom:var(--space-2); border-bottom:1px solid var(--color-divider)">
+                        <span style="font-family:var(--font-heading); font-size:20px; font-weight:600">性格倾向</span>
+                        <span style="font-size:11.5px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">依据 41 条</span>
+                      </div>
+                      <p style="margin:0; font-size:15px; line-height:1.8; text-align:justify">内耗型的自我要求者。你在独处后写得最长，在连续开会的日子几乎不记录；情绪低落时倾向于用「还是做完了」收尾，而不是抱怨。</p>
+                      <button class="btn btn-ghost" style="align-self:flex-start; padding-left:0; font-size:13px">看依据的 8 天</button>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+                      <div style="display:flex; justify-content:space-between; align-items:baseline; padding-bottom:var(--space-2); border-bottom:1px solid var(--color-divider)">
+                        <span style="font-family:var(--font-heading); font-size:20px; font-weight:600">价值观</span>
+                        <span style="font-size:11.5px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">依据 33 条</span>
+                      </div>
+                      <p style="margin:0; font-size:15px; line-height:1.8; text-align:justify">把「安静」当作稀缺资源：反复出现的关键词是节奏、独处、不被打断。对关系的判断标准是能否长期说真话，而不是频次。</p>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+                      <div style="display:flex; justify-content:space-between; align-items:baseline; padding-bottom:var(--space-2); border-bottom:1px solid var(--color-divider)">
+                        <span style="font-family:var(--font-heading); font-size:20px; font-weight:600">工作观</span>
+                        <span style="font-size:11.5px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">依据 52 条</span>
+                      </div>
+                      <p style="margin:0; font-size:15px; line-height:1.8; text-align:justify">你满意的日子几乎都有一个共同点：一天只推进一件难事。当日记里出现三个以上并行任务，第二天的记录多为疲惫与自责。</p>
+                    </div>
+                  </div>
+
+                  <div style="border:1px solid var(--color-divider); border-radius:var(--radius-md); padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-3)">
+                    <span style="font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-accent-700)">本周变化</span>
+                    <div style="display:grid; grid-template-columns:16px 1fr; gap:var(--space-2) var(--space-3); font-size:14px; line-height:1.7">
+                      <span style="color:var(--color-accent-700)">+</span>
+                      <span>开始把跑步写成「清空脑子的手段」，而非任务。</span>
+                      <span style="color:var(--color-neutral-500)">−</span>
+                      <span style="color:var(--color-neutral-700)">对搬家/离别的焦虑提及减少（上周 6 次 → 本周 2 次）。</span>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+                    <button class="btn btn-secondary btn-block">导出 user.md</button>
+                    <button class="btn btn-ghost btn-block">立即重算 · 约 2 分钟</button>
+                    <p style="margin:0; font-size:12px; line-height:1.7; color:var(--color-neutral-600); text-align:justify">重算只读日记正文，不读原始录音；可在设置里改时间或关闭。</p>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+              <div style="height:100%; display:flex; flex-direction:column">
+                <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider)">
+                  <button class="btn btn-ghost" onClick="{{ goHome }}" style="padding-left:0">返回</button>
+                  <span style="font-family:var(--font-heading); font-size:20px; font-weight:600">设置</span>
+                </div>
+                <div style="flex:1; overflow:auto; padding:var(--space-4) var(--space-4) 44px; display:flex; flex-direction:column; gap:var(--space-6)">
+                  <div style="display:flex; flex-direction:column; gap:var(--space-3)">
+                    <span style="font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-neutral-600)">Model</span>
+                    <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+                      <div style="display:flex; justify-content:space-between; align-items:baseline; padding-bottom:var(--space-2); border-bottom:1px solid var(--color-divider)">
+                        <span style="font-size:15px">Qwen3 {{ tierLabel }} · Q4_K_M</span>
+                        <span class="tag tag-accent">使用中</span>
+                      </div>
+                      <p style="margin:0; font-size:13px; line-height:1.7; color:var(--color-neutral-700); text-align:justify">本机可用内存 5.4&nbsp;GB，两档都可运行。4B 成稿更整齐，单次约多 40&nbsp;秒。</p>
+                      <button class="btn btn-secondary btn-block" onClick="{{ swapTier }}" style="margin-top:var(--space-1)">切换到 {{ otherTierLabel }}</button>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; flex-direction:column; gap:var(--space-3)">
+                    <span style="font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-neutral-600)">Privacy</span>
+                    <button onClick="{{ toggleCloud }}" style="display:flex; justify-content:space-between; align-items:center; gap:var(--space-4); background:transparent; border:0; border-bottom:1px solid var(--color-divider); padding:0 0 var(--space-3); cursor:pointer; font-family:var(--font-body); color:var(--color-text); text-align:left">
+                      <span style="display:flex; flex-direction:column; gap:4px">
+                        <span style="font-size:15px">云端兜底 Cloud fallback</span>
+                        <span style="font-size:12.5px; color:var(--color-neutral-700); line-height:1.6">仅在本机生成失败时询问，永不自动上传</span>
+                      </span>
+                      <span style="flex-shrink:0; font-size:13px; color:var(--color-accent-700); border-bottom:1px solid var(--color-accent-400)">{{ cloudLabel }}</span>
+                    </button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:var(--space-3); border-bottom:1px solid var(--color-divider)">
+                      <span style="font-size:15px">录音仅本机保存</span>
+                      <span style="font-size:13px; color:var(--color-neutral-700)">开启</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:var(--space-4); padding-bottom:var(--space-3); border-bottom:1px solid var(--color-divider)">
+                      <span style="display:flex; flex-direction:column; gap:4px">
+                        <span style="font-size:15px">每日画像 user.md</span>
+                        <span style="font-size:12.5px; color:var(--color-neutral-700); line-height:1.6">每天定时重算「关于我」，只读日记正文</span>
+                      </span>
+                      <span style="flex-shrink:0; font-size:13px; color:var(--color-accent-700); border-bottom:1px solid var(--color-accent-400); font-variant-numeric:tabular-nums">23:30</span>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; flex-direction:column; gap:var(--space-3)">
+                    <span style="font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-neutral-600)">Storage</span>
+                    <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+                      <div style="display:flex; height:3px; background:var(--color-neutral-300)">
+                        <div style="width:62%; background:var(--color-accent)"></div>
+                        <div style="width:9%; background:var(--color-accent-300)"></div>
+                      </div>
+                      <div style="display:flex; justify-content:space-between; font-size:12.5px; color:var(--color-neutral-700); font-variant-numeric:tabular-nums">
+                        <span>模型 2.4 GB</span><span>录音 340 MB</span><span>笔记 6 MB</span>
+                      </div>
+                      <button class="btn btn-ghost" style="align-self:flex-start; padding-left:0">清理已转写录音</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+          </div>
+        </x-import>
+        <p style="max-width:402px; margin:0; font-size:13px; line-height:1.7; color:var(--color-neutral-700); text-align:justify">底栏两条入口：<strong style="font-weight:500">口述</strong>是主路径——点一下麦克风即进入听写模式（长按则是即按即说），说话时文字实时出现在麦克风上方的框里，可以直接改、可选一次轻润色，点「发送到笔记」才落进今天。打字则<strong style="font-weight:500">没有输入框</strong>：点时间线末尾的空白就地起一行、双击某条进入该条的编辑，光标落在笔记里，输入法直接改笔记本身；键盘上方是格式条与「完成」。两条路径都只是「攒素材」，都不触发「整理今日」那次成稿生成；轻润色是另一回事——一次可选的短任务，只断句去口水词。试：口述或打字记一条 → 底栏「整理今日笔记」→ 等待态可「后台运行」→ 成稿页可展开原始条目回溯、保存进日记。右上三个图标依次是历史、关于我（user.md）、设置——记满几天后进「关于我」，能看到画像与本周变化。</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:var(--space-6); max-width:300px">
+        <div style="display:flex; flex-direction:column; gap:var(--space-3)">
+          <h3 style="font-family:var(--font-heading); font-size:22px; font-weight:600; margin:0">竞品调研的取舍</h3>
+          <div class="hr"></div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-3)">
+            <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-accent-700)">第一版采纳</span>
+            <div style="display:grid; grid-template-columns:auto 1fr; gap:var(--space-2) var(--space-3); font-size:13px; line-height:1.65">
+              <span style="color:var(--color-accent-700)">·</span><span>录音面板给出<strong style="font-weight:500">单条上限与剩余时长</strong>（01:00）——本地 ASR 有实际吞吐上限，长录音必须先劝退。</span>
+              <span style="color:var(--color-accent-700)">·</span><span>搜索页的<strong style="font-weight:500">快捷筛选</strong>：有语音 / 那年今日 / 未整理。零成本，直接提升检索命中。</span>
+              <span style="color:var(--color-accent-700)">·</span><span>画像页顶部的<strong style="font-weight:500">记录量与连续天数</strong>。画像质量取决于数据量，这个数字就是它的可信度刻度。</span>
+              <span style="color:var(--color-accent-700)">·</span><span>更新后<strong style="font-weight:500">推一条通知</strong>作为回顾契机——不做卡片流回顾，只做一条。</span>
+            </div>
+          </div>
+          <div class="hr"></div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-3)">
+            <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-neutral-600)">明确不做</span>
+            <p style="margin:0; font-size:13px; line-height:1.75; text-align:justify; color:var(--color-neutral-700)">标签体系与层级、认知地图、随机漫步、多视角洞察市场、图片与附件、多端与聊天入口、会员墙。它们都依赖「量大 + 云端 + 长期沉淀」，与第一版的语音 + 本地 + 一份画像正交；先把这三件做扎实。</p>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:var(--space-3)">
+          <h3 style="font-family:var(--font-heading); font-size:22px; font-weight:600; margin:0">交互原则</h3>
+          <div class="hr"></div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-4)">
+            <div style="display:flex; flex-direction:column; gap:5px">
+              <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-accent-700); font-variant-numeric:tabular-nums">01 · 下载不阻断</span>
+              <p style="margin:0; font-size:13.5px; line-height:1.75; text-align:justify; color:var(--color-neutral-800)">引导只做内存探测与分档选择，下载转入顶部细条后台进行；期间随手记全程可用，只有「整理」入口是半禁用态。</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px">
+              <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-accent-700); font-variant-numeric:tabular-nums">02 · 两条记录路径不平权</span>
+              <p style="margin:0; font-size:13.5px; line-height:1.75; text-align:justify; color:var(--color-neutral-800)">口述是主路径，占满一行：点麦克风 → 实时转写框边说边出字 → 可改 → 发送到笔记。打字是降级路径（会议中、噪声大），但不设输入框与提交键——点笔记里的位置就地编辑，写完即已在笔记中，只有「完成」收起键盘。单条的转写与轻润色都是秒级短任务，与「整理今日」那次 30–150 秒的成稿分属两条队列——记录永不排在生成后面。</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px">
+              <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-accent-700); font-variant-numeric:tabular-nums">03 · 等待要有刻度</span>
+              <p style="margin:0; font-size:13.5px; line-height:1.75; text-align:justify; color:var(--color-neutral-800)">30–150 秒的空白最伤人。进度条配三段阶段文案（读取条目 / 整理 / 成稿），并给出剩余估时；随时可退到后台，完成推通知。</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px">
+              <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-accent-700); font-variant-numeric:tabular-nums">04 · 成稿是草稿</span>
+              <p style="margin:0; font-size:13.5px; line-height:1.75; text-align:justify; color:var(--color-neutral-800)">成稿按逻辑分节（工作 / 关系 / 状态）而非时间顺序，顶部一句提要；每节标注依据条数，原始条目一键回溯，用户永远能验证「它有没有编造」。mood 与标签是可改的建议值，段落双击即改。</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px">
+              <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-accent-700); font-variant-numeric:tabular-nums">05 · 时间线只是脚手架</span>
+              <p style="margin:0; font-size:13.5px; line-height:1.75; text-align:justify; color:var(--color-neutral-800)">建议保留、但不作为阅读结构：时间线只在当天有用（知道刚说过什么、核对模型有没有编造），成稿后收进「回溯原始条目」。历史与搜索里默认呈现按逻辑整理过的正文，条目时间退为元数据。</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px">
+              <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-accent-700); font-variant-numeric:tabular-nums">06 · 长期产出一份 user.md</span>
+              <p style="margin:0; font-size:13.5px; line-height:1.75; text-align:justify; color:var(--color-neutral-800)">每天定时（默认 23:30）用日记正文重算一份「关于我」：性格、价值观、工作观，附本周变化与依据日期，可导出 user.md。它是累积产物，不是每日新文档。</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px">
+              <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-accent-700); font-variant-numeric:tabular-nums">07 · 离线是默认</span>
+              <p style="margin:0; font-size:13.5px; line-height:1.75; text-align:justify; color:var(--color-neutral-800)">云端兜底默认关闭，且只在本机失败（OOM / guardrail 拒绝）时以对话框询问一次，绝不静默上传。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="hr"></div>
+
+    <div style="display:flex; flex-direction:column; gap:var(--space-4)">
+      <h3 style="font-family:var(--font-heading); font-size:22px; font-weight:600; margin:0">iOS · 其余关键页</h3>
+      <div style="display:flex; flex-wrap:wrap; gap:48px">
+
+        <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+          <span style="font-size:12.5px; color:var(--color-neutral-700)">① 引导 · 内存探测与分档</span>
+          <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px" width="{{ 402 }}" height="{{ 874 }}">
+            <div style="height:100%; padding:54px var(--space-6) 44px; background:var(--color-bg); display:flex; flex-direction:column; gap:var(--space-6); font-family:var(--font-body)">
+              <div style="display:flex; flex-direction:column; gap:var(--space-2); padding-top:var(--space-6)">
+                <span style="font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-neutral-600)">Step 2 / 3</span>
+                <h2 style="font-family:var(--font-heading); font-weight:400; font-size:34px; line-height:1.15; margin:0">选一个本地模型</h2>
+                <p style="margin:0; font-size:14px; line-height:1.75; text-align:justify; color:var(--color-neutral-700)">已探测本机：iPhone 15 · 可用内存 <span style="font-variant-numeric:tabular-nums">5.4 GB</span>。两档都能跑，随时可在设置里换。</p>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:var(--space-3)">
+                <label class="card" style="display:flex; flex-direction:column; gap:var(--space-2); padding:var(--space-4); border-color:var(--color-accent); cursor:pointer">
+                  <div style="display:flex; justify-content:space-between; align-items:baseline">
+                    <span style="font-family:var(--font-heading); font-size:22px; font-weight:600">Qwen3 1.7B</span>
+                    <span class="tag tag-accent">推荐</span>
+                  </div>
+                  <p style="margin:0; font-size:13.5px; line-height:1.7; color:var(--color-neutral-800); text-align:justify">下载 1.5 GB · 峰值内存约 2.1 GB · 单次整理 30–60 秒。日常够用，发热小。</p>
+                </label>
+                <label class="card" style="display:flex; flex-direction:column; gap:var(--space-2); padding:var(--space-4); cursor:pointer">
+                  <div style="display:flex; justify-content:space-between; align-items:baseline">
+                    <span style="font-family:var(--font-heading); font-size:22px; font-weight:600">Qwen3 4B</span>
+                    <span class="tag tag-outline">更整齐</span>
+                  </div>
+                  <p style="margin:0; font-size:13.5px; line-height:1.7; color:var(--color-neutral-800); text-align:justify">下载 2.9 GB · 峰值内存约 3.6 GB · 单次整理 70–150 秒。条目多、想要更好的归纳时选它。</p>
+                </label>
+              </div>
+              <div style="margin-top:auto; display:flex; flex-direction:column; gap:var(--space-3)">
+                <p style="margin:0; font-size:12.5px; line-height:1.7; color:var(--color-neutral-600); text-align:justify">下载在后台进行，期间你可以先开始记录。建议接入 Wi-Fi。</p>
+                <button class="btn btn-primary btn-block">开始下载并进入</button>
+                <button class="btn btn-ghost btn-block">稍后再下载</button>
+              </div>
+            </div>
+          </x-import>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+          <span style="font-size:12.5px; color:var(--color-neutral-700)">② 主页 · 下载中的半禁用态</span>
+          <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px" width="{{ 402 }}" height="{{ 874 }}">
+            <div style="height:100%; display:flex; flex-direction:column; padding-top:54px; background:var(--color-bg); font-family:var(--font-body)">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); padding:var(--space-2) var(--space-4); background:var(--color-accent-100); border-bottom:1px solid var(--color-accent-300)">
+                <span style="font-size:12.5px; color:var(--color-accent-800); font-variant-numeric:tabular-nums">下载模型 1.7B · 0.9 / 1.5 GB · 约 3 分钟</span>
+                <span style="font-size:12px; color:var(--color-accent-700); border-bottom:1px solid var(--color-accent-400)">暂停</span>
+              </div>
+              <div style="height:2px; background:var(--color-neutral-300)"><div style="width:58%; height:100%; background:var(--color-accent)"></div></div>
+              <div style="display:flex; align-items:flex-end; justify-content:space-between; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider)">
+                <div style="display:flex; flex-direction:column; gap:2px">
+                  <span style="font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">Thu · 2026.08.14</span>
+                  <span style="font-family:var(--font-heading); font-size:27px; font-weight:600; line-height:1.1">今天</span>
+                </div>
+              </div>
+              <div style="flex:1; padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-3)">
+                <div style="display:grid; grid-template-columns:56px 1fr; gap:var(--space-3); padding-bottom:var(--space-3); border-bottom:1px solid var(--color-divider)">
+                  <span style="font-size:12.5px; font-variant-numeric:tabular-nums; color:var(--color-neutral-600)">09:12</span>
+                  <p style="margin:0; font-size:15px; line-height:1.7">先把提案第三节重写一遍。</p>
+                </div>
+                <p style="margin:0; font-size:13px; line-height:1.75; color:var(--color-neutral-600); text-align:justify">记录不受下载影响。模型就绪后，今天的条目会一并整理。</p>
+              </div>
+              <div style="border-top:1px solid var(--color-divider); background:var(--color-neutral-100)">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider); opacity:.45">
+                  <span style="font-size:13px; color:var(--color-neutral-700); font-variant-numeric:tabular-nums">1 条随手记</span>
+                  <span style="font-size:14px">整理今日笔记 · 待模型就绪</span>
+                </div>
+                <div style="padding:var(--space-3) var(--space-4) 34px">
+                  <button class="btn btn-primary btn-block" style="height:52px; display:flex; align-items:center; justify-content:center; gap:var(--space-2); font-size:16px">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"></path></svg>
+                    口述 · 点一下开始，长按即按即说
+                  </button>
+                </div>
+              </div>
+            </div>
+          </x-import>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+          <span style="font-size:12.5px; color:var(--color-neutral-700)">③ 搜索 · 全文与标签</span>
+          <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px" width="{{ 402 }}" height="{{ 874 }}" keyboard="{{ true }}">
+            <div style="height:100%; padding:54px 0 0; background:var(--color-bg); display:flex; flex-direction:column; font-family:var(--font-body)">
+              <div style="padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider); display:flex; gap:var(--space-2); align-items:center">
+                <input class="input" value="阿哲" style="flex:1; font-size:15px; background:var(--color-bg)">
+                <span style="font-size:14px; color:var(--color-accent-700)">取消</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:var(--space-2); padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider)">
+                <div style="display:flex; gap:var(--space-2); flex-wrap:wrap">
+                  <span class="tag tag-accent">人物</span>
+                  <span class="tag tag-outline">标签</span>
+                  <span class="tag tag-outline">地点</span>
+                  <span class="tag tag-outline">mood</span>
+                </div>
+                <div style="display:flex; gap:var(--space-2); flex-wrap:wrap; align-items:center">
+                  <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-neutral-600)">快捷</span>
+                  <span class="tag tag-neutral">有语音</span>
+                  <span class="tag tag-neutral">那年今日</span>
+                  <span class="tag tag-neutral">未整理</span>
+                </div>
+              </div>
+              <div style="flex:1; overflow:auto; padding:var(--space-3) var(--space-4)">
+                <span style="font-size:11.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">7 条结果</span>
+                <div style="display:flex; flex-direction:column; margin-top:var(--space-2)">
+                  <div style="padding:var(--space-3) 0; border-bottom:1px solid var(--color-divider); display:flex; flex-direction:column; gap:4px">
+                    <span style="font-size:11.5px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">2026.08.14</span>
+                    <p style="margin:0; font-size:14.5px; line-height:1.7">中午和<span style="border-bottom:1px solid var(--color-accent)">阿哲</span>在巷口那家面馆碰头，他说十月要搬去杭州…</p>
+                  </div>
+                  <div style="padding:var(--space-3) 0; border-bottom:1px solid var(--color-divider); display:flex; flex-direction:column; gap:4px">
+                    <span style="font-size:11.5px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">2026.07.30</span>
+                    <p style="margin:0; font-size:14.5px; line-height:1.7">和<span style="border-bottom:1px solid var(--color-accent)">阿哲</span>把旧项目复盘完，他提到工作节奏的事…</p>
+                  </div>
+                  <div style="padding:var(--space-3) 0; border-bottom:1px solid var(--color-divider); display:flex; flex-direction:column; gap:4px">
+                    <span style="font-size:11.5px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">2026.07.11</span>
+                    <p style="margin:0; font-size:14.5px; line-height:1.7">周末骑车去了城西，<span style="border-bottom:1px solid var(--color-accent)">阿哲</span>迟到了半小时…</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </x-import>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+          <span style="font-size:12.5px; color:var(--color-neutral-700)">④ 降级 · 本机失败后的一次询问</span>
+          <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px" width="{{ 402 }}" height="{{ 874 }}">
+            <div style="height:100%; padding-top:54px; background:var(--color-bg); position:relative; font-family:var(--font-body)">
+              <div style="padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-4); filter:blur(1px); opacity:.5">
+                <h2 style="font-family:var(--font-heading); font-weight:400; font-size:32px; margin:0">正在整理今天</h2>
+                <div style="height:3px; background:var(--color-neutral-300)"><div style="width:41%; height:100%; background:var(--color-accent)"></div></div>
+                <span style="font-size:14px; color:var(--color-neutral-700)">整理条目…</span>
+              </div>
+              <div class="dialog-backdrop" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:var(--space-4)">
+                <div class="dialog" style="width:100%; display:flex; flex-direction:column; gap:var(--space-3); padding:var(--space-6)">
+                  <h3 class="dialog-title" style="margin:0; font-family:var(--font-heading); font-size:24px; font-weight:600">本机内存不足，未能成稿</h3>
+                  <p class="dialog-body" style="margin:0; font-size:14px; line-height:1.75; text-align:justify; color:var(--color-neutral-800)">今天条目较多（38 条），1.7B 在整理阶段被系统回收。可以只整理下半天，或改用云端整理一次——那会把今天的文字上传。</p>
+                  <div class="dialog-actions" style="display:flex; flex-direction:column; gap:var(--space-2); margin-top:var(--space-2)">
+                    <button class="btn btn-primary btn-block">只整理下半天（本机）</button>
+                    <button class="btn btn-secondary btn-block">改用云端整理一次</button>
+                    <button class="btn btn-ghost btn-block">保留原始条目，稍后再说</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </x-import>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div style="display:flex; flex-direction:column; gap:var(--space-4)">
+      <div style="display:flex; flex-direction:column; gap:var(--space-2); max-width:760px">
+        <h3 style="font-family:var(--font-heading); font-size:22px; font-weight:600; margin:0">Android · 差异最大的两页</h3>
+        <p style="margin:0; font-size:14px; line-height:1.75; color:var(--color-neutral-700); text-align:justify">同一套排版与语义，平台差异只落在三处：顶部 app bar 与返回交给系统手势、底部输入随 IME 抬起、生成走前台服务通知（Android 的后台限制更严，通知即进度）。</p>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:48px">
+
+        <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+          <span style="font-size:12.5px; color:var(--color-neutral-700)">主页 · 就地编辑（IME 抬起）+ 前台服务通知</span>
+          <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="412px,892px" keyboard="{{ true }}">
+            <div style="height:100%; display:flex; flex-direction:column; background:var(--color-bg); font-family:var(--font-body)">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider)">
+                <span style="font-family:var(--font-heading); font-size:24px; font-weight:600">今天</span>
+                <div style="display:flex; gap:var(--space-3); color:var(--color-neutral-700)">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>
+                </div>
+              </div>
+              <div style="margin:var(--space-3) var(--space-4) 0; border:1px solid var(--color-divider); border-radius:var(--radius-md); padding:var(--space-3); display:flex; gap:var(--space-3); align-items:center; background:var(--color-neutral-100)">
+                <div style="width:26px; height:26px; border:1px solid var(--color-accent-400); border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; color:var(--color-accent-700); font-size:11px; font-variant-numeric:tabular-nums">Q3</div>
+                <div style="display:flex; flex-direction:column; gap:2px; flex:1">
+                  <span style="font-size:13px">整理今天 · 前台服务运行中</span>
+                  <span style="font-size:11.5px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">阶段 2 / 3 · 约 40 秒</span>
+                </div>
+              </div>
+              <div style="flex:1; overflow:hidden; padding:var(--space-3) var(--space-4); display:flex; flex-direction:column">
+                <div style="display:grid; grid-template-columns:56px 1fr; gap:var(--space-3); padding-bottom:var(--space-3); border-bottom:1px solid var(--color-divider)">
+                  <span style="font-size:12.5px; font-variant-numeric:tabular-nums; color:var(--color-neutral-600)">12:40</span>
+                  <p style="margin:0; font-size:15px; line-height:1.7">和阿哲在巷口面馆碰头。</p>
+                </div>
+                <div style="display:grid; grid-template-columns:56px 1fr; gap:var(--space-3); padding-top:var(--space-3)">
+                  <span style="font-size:12.5px; font-variant-numeric:tabular-nums; color:var(--color-neutral-600)">18:22</span>
+                  <span style="font-size:15px; line-height:1.7; border-bottom:1px solid var(--color-accent); padding-bottom:3px">风比上周凉<span style="display:inline-block; width:1.5px; height:17px; background:var(--color-accent); vertical-align:-3px; margin-left:1px"></span></span>
+                </div>
+              </div>
+              <div style="border-top:1px solid var(--color-divider); background:var(--color-neutral-100); padding:var(--space-2) var(--space-4); display:flex; gap:var(--space-4); align-items:center; justify-content:space-between; color:var(--color-neutral-700)">
+                <div style="display:flex; gap:var(--space-4); align-items:center">
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h11a5 5 0 0 1 0 10h-5"></path></svg>
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m15 14 5-5-5-5"></path><path d="M20 9H9a5 5 0 0 0 0 10h5"></path></svg>
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M20.6 13.4 12 22H7a3 3 0 0 1-3-3v-5l8.6-8.6a3 3 0 0 1 4.2 0l3.8 3.8a3 3 0 0 1 0 4.2z"></path><path d="M7.5 10.5 4 7"></path></svg>
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
+                </div>
+                <span style="font-size:15px; color:var(--color-accent-700)">完成</span>
+              </div>
+            </div>
+          </x-import>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+          <span style="font-size:12.5px; color:var(--color-neutral-700)">成稿 · 系统返回手势 + 保存状态</span>
+          <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="412px,892px">
+            <div style="height:100%; display:flex; flex-direction:column; background:var(--color-bg); font-family:var(--font-body)">
+              <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+                <span style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--color-neutral-600)">Draft · 可编辑</span>
+              </div>
+              <div style="flex:1; overflow:auto; padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-4)">
+                <div style="display:flex; flex-direction:column; gap:var(--space-1)">
+                  <span style="font-size:11px; letter-spacing:0.16em; color:var(--color-neutral-600); font-variant-numeric:tabular-nums">2026.08.14</span>
+                  <h2 style="font-family:var(--font-heading); font-weight:600; font-size:28px; line-height:1.15; margin:0">凉了一点的一天</h2>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:var(--space-2); align-items:center">
+                  <span class="tag tag-accent">平静 · 略疲惫</span>
+                  <span class="tag tag-outline">#写作</span>
+                  <span class="tag tag-outline">#跑步</span>
+                </div>
+                <div style="border-top:1px solid var(--color-divider); border-bottom:1px solid var(--color-divider); padding:var(--space-3) 0">
+                  <p style="margin:0; font-family:var(--font-heading); font-style:italic; font-size:19px; line-height:1.5; text-align:center; color:var(--color-accent-800)">「我们其实都在等一个更安静的工作节奏。」</p>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+                  <div style="display:flex; align-items:baseline; gap:var(--space-3)">
+                    <span style="font-size:11px; letter-spacing:0.16em; color:var(--color-accent-700); font-variant-numeric:tabular-nums">01</span>
+                    <span style="font-family:var(--font-heading); font-size:19px; font-weight:600">工作</span>
+                    <span style="flex:1; height:1px; background:var(--color-divider)"></span>
+                  </div>
+                  <p style="margin:0; font-size:15.5px; line-height:1.85; text-align:justify">把提案的第三节重写了一遍，比昨天顺——卡住的地方是开头缺一个具体的例子。</p>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:var(--space-2)">
+                  <div style="display:flex; align-items:baseline; gap:var(--space-3)">
+                    <span style="font-size:11px; letter-spacing:0.16em; color:var(--color-accent-700); font-variant-numeric:tabular-nums">02</span>
+                    <span style="font-family:var(--font-heading); font-size:19px; font-weight:600">关系</span>
+                    <span style="flex:1; height:1px; background:var(--color-divider)"></span>
+                  </div>
+                  <p style="margin:0; font-size:15.5px; line-height:1.85; text-align:justify">和阿哲在巷口面馆碰头，他十月要搬去杭州。傍晚沿河堤跑了四公里，风比上周凉。</p>
+                </div>
+                <div class="hr"></div>
+                <div style="display:grid; grid-template-columns:64px 1fr; gap:var(--space-2) var(--space-3); font-size:14px">
+                  <span style="color:var(--color-neutral-600)">人物</span><span>阿哲</span>
+                  <span style="color:var(--color-neutral-600)">地点</span><span>巷口面馆 · 城南河堤</span>
+                </div>
+              </div>
+              <div style="border-top:1px solid var(--color-divider); background:var(--color-neutral-100); padding:var(--space-3) var(--space-4); display:flex; flex-direction:column; gap:var(--space-2)">
+                <div style="display:flex; align-items:center; gap:var(--space-2); font-size:12.5px; color:var(--color-neutral-700)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                  已存入日记 · 原始条目与录音保留在本机
+                </div>
+                <div style="display:flex; gap:var(--space-2)">
+                  <button class="btn btn-secondary" style="flex:1">重新生成</button>
+                  <button class="btn btn-primary" style="flex:1.4">保存</button>
+                </div>
+              </div>
+            </div>
+          </x-import>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;modelTier&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;1.7B&quot;,&quot;4B&quot;],&quot;default&quot;:&quot;1.7B&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;模型&quot;},&quot;genSeconds&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:3,&quot;max&quot;:20,&quot;step&quot;:1,&quot;unit&quot;:&quot;s&quot;,&quot;default&quot;:7,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;模型&quot;},&quot;cloudFallback&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;隐私&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: 'home',
+    draft: '',
+    entries: [
+      { time: '09:12', text: '先把提案第三节重写一遍，比昨天顺。', voice: '' },
+      { time: '12:40', text: '和阿哲在巷口面馆碰头，他说十月要搬去杭州。', voice: '48″' },
+      { time: '18:05', text: '沿河堤跑了四公里，风比上周凉。', voice: '' },
+      { time: '21:30', text: '给妈妈回了电话，答应周末回家吃饭。', voice: '1′12″' },
+    ],
+    progress: 0,
+    showSource: false,
+    saved: false,
+    tier: null,
+    cloud: null,
+    recording: false,
+    recSec: 0,
+    voiceIdx: 0,
+    confirming: false,
+    confirmText: '',
+    polishing: false,
+    polished: false,
+    focusIdx: null,
+    editIdx: null,
+    editText: '',
+    micOn: false,
+    queued: false,
+    pending: [
+      { date: '2026.08.10', count: '5 条', preview: '搬家的事又提了一次；晚上没跑步。', sel: true, done: false },
+      { date: '2026.08.08', count: '3 条', preview: '会开到很晚，只记了两句抱怨。', sel: true, done: false },
+      { date: '2026.08.05', count: '9 条', preview: '在书店待了一下午，记了很多零碎想法。', sel: true, done: false },
+      { date: '2026.07.29', count: '4 条', preview: '模型还没下载完，那天只留了语音。', sel: false, done: false },
+      { date: '2026.07.21', count: '6 条', preview: '生成被系统中断了一次，没再重试。', sel: false, done: false },
+      { date: '2026.07.16', count: '2 条', preview: '只有一条跑步记录和一句梦话。', sel: false, done: false },
+    ],
+  };
+
+  RAW = [
+    '嗯…就是刚才在楼下等电梯的时候，然后突然想到那个提案的开头，其实应该换成、换成那个面馆的例子会更好一点。',
+    '傍晚跑步，风很凉，然后跑到第三公里的时候有点想停下来，但是还是、还是跑完了。',
+    '刚跟妈妈打完电话，答应她周末回去，然后顺便把那本书带过去给她。',
+  ];
+
+  POLISHED = [
+    '在楼下等电梯时想到，提案的开头应该换成面馆那个例子会更好。',
+    '傍晚跑步，风很凉。第三公里有点想停下来，还是跑完了。',
+    '和妈妈通完电话，答应周末回去，顺便把那本书带给她。',
+  ];
+
+  componentWillUnmount() { clearInterval(this._t); this.stopTimers(); }
+
+  stopTimers() { clearInterval(this._r); clearInterval(this._stream); clearInterval(this._q); }
+
+  beginRec() {
+    this.stopTimers();
+    this.setState({ recording: true, micOn: true, recSec: 0, confirmText: '', polished: false });
+    this._r = setInterval(() => this.setState(st => ({ recSec: st.recSec + 1 })), 1000);
+    this.startStream();
+  }
+
+  startStream() {
+    clearInterval(this._stream);
+    const full = this.RAW[this.state.voiceIdx % this.RAW.length];
+    this._stream = setInterval(() => {
+      const cur = this.state.confirmText;
+      if (!full.startsWith(cur) || cur.length >= full.length) { clearInterval(this._stream); return; }
+      this.setState({ confirmText: full.slice(0, cur.length + 2) });
+    }, 130);
+  }
+
+  get seconds() { return this.props.genSeconds ?? 7; }
+  get tier() { return this.state.tier ?? this.props.modelTier ?? '1.7B'; }
+  get cloud() { return this.state.cloud ?? this.props.cloudFallback ?? false; }
+
+  run() {
+    clearInterval(this._t);
+    const step = 100 / (this.seconds * 10);
+    this._t = setInterval(() => {
+      this.setState(s => {
+        const p = s.progress + step;
+        if (p >= 100) { clearInterval(this._t); return { progress: 100, screen: 'result' }; }
+        return { progress: p };
+      });
+    }, 100);
+  }
+
+  renderVals() {
+    const s = this.state, p = s.progress;
+    const stageIdx = p < 18 ? 0 : p < 78 ? 1 : 2;
+    const stageLabels = ['读取今天的条目…', '整理与归纳…', '成稿与打标…'];
+    const total = this.seconds;
+    const left = Math.max(1, Math.round(total * (100 - p) / 100));
+    const ei = s.editIdx, fi = s.focusIdx;
+    return {
+      entries: s.entries.map((e, i) => ({
+        ...e,
+        editing: ei === i,
+        reading: ei !== i,
+        voiceShown: !!e.voice && ei !== i,
+        rowBg: ei === i ? 'transparent' : fi === i ? 'var(--color-accent-100)' : 'transparent',
+        onTap: () => this.tapRow(i),
+      })),
+      editing: ei !== null,
+      notEditing: ei === null,
+      editText: s.editText,
+      tailHintShown: ei === null,
+      onEditText: e => this.setState({ editText: e.target.value }),
+      endEdit: () => this.commitEdit(),
+      tapTail: () => this.newLine(),
+      isHome: s.screen === 'home',
+      isGen: s.screen === 'gen',
+      isResult: s.screen === 'result',
+      isHistory: s.screen === 'history',
+      isSettings: s.screen === 'settings',
+      isAbout: s.screen === 'about',
+      sections: [
+        { no: '01', title: '工作', from: '依据 2 条', body: '把提案的第三节重写了一遍，比昨天顺——过去几天卡住的地方，是开头没有一个具体的例子。今天换成面馆那个场景之后，后面自然接上了。' },
+        { no: '02', title: '关系', from: '依据 1 条', body: '和阿哲在巷口面馆碰头。他十月要搬去杭州。真正让人停顿的不是搬家本身，而是我们都在等一个更安静的工作节奏这件事被说了出来。晚上给妈妈回了电话，答应周末回家吃饭。' },
+        { no: '03', title: '身体与状态', from: '依据 1 条', body: '沿河堤跑了四公里，风比上周凉。第三公里想停，最后跑完了——这一整天的疲惫是那种做完事之后的疲惫。' },
+      ],
+      streak: [3,0,2,3,1,3,3,2,0,1,3,3,3,1,2,0,3,2,3,3,1,3,0,2,3,3,2,3,3,3].map(v => ({
+        bg: v === 0 ? 'var(--color-neutral-200)' : v === 1 ? 'var(--color-accent-200)' : v === 2 ? 'var(--color-accent-300)' : 'var(--color-accent-500)',
+      })),
+      goAbout: () => this.setState({ screen: 'about' }),
+      isCatchup: s.screen === 'catchup',
+      goCatchup: () => this.setState({ screen: 'catchup' }),
+      hasPending: s.pending.some(p => !p.done),
+      noPending: s.pending.every(p => p.done),
+      pendingLabel: s.pending.filter(p => !p.done).length + ' 天',
+      pending: s.pending.filter(p => !p.done || s.queued).map(p => ({
+        ...p,
+        checked: p.sel && !p.done,
+        bg: p.done ? 'var(--color-neutral-100)' : 'transparent',
+        boxBorder: p.sel && !p.done ? 'var(--color-accent)' : 'var(--color-neutral-400)',
+        boxFill: p.sel && !p.done ? 'var(--color-accent)' : 'transparent',
+        status: p.done ? '已成稿' : s.queued && p.sel ? (this.firstQueued() === p.date ? '生成中' : '排队中') : '',
+        statusColor: p.done ? 'var(--color-accent-700)' : 'var(--color-neutral-600)',
+        onToggle: () => this.toggleDay(p.date),
+      })),
+      queued: s.queued,
+      queueLabel: '正在补 ' + (this.firstQueued() || '') + ' · 本机 ' + this.tier,
+      catchupDisabled: s.queued || s.pending.filter(p => p.sel && !p.done).length === 0,
+      catchupLabel: s.queued ? '补稿进行中…' : '排队补稿 · ' + s.pending.filter(p => p.sel && !p.done).length + ' 天',
+      runCatchup: () => this.runCatchup(),
+      pickRecent: () => this.setState(st => ({ pending: st.pending.map((p, i) => ({ ...p, sel: i < 3 })) })),
+      pickAll: () => this.setState(st => ({ pending: st.pending.map(p => ({ ...p, sel: true })) })),
+      pickNone: () => this.setState(st => ({ pending: st.pending.map(p => ({ ...p, sel: false })) })),
+      countLabel: s.entries.length + ' 条随手记 · 今天',
+      progressPct: Math.round(p) + '%',
+      stageLabel: stageLabels[stageIdx],
+      etaLabel: '约剩 ' + left + ' 秒 · 本机',
+      tierLabel: this.tier,
+      otherTierLabel: this.tier === '1.7B' ? '4B' : '1.7B',
+      cloudLabel: this.cloud ? '已开启' : '关闭',
+      sourceLabel: s.entries.length + ' 条随手记',
+      showSource: s.showSource,
+      sourceToggleLabel: s.showSource ? '收起原始条目' : '回溯原始条目',
+      saved: s.saved,
+      saveLabel: s.saved ? '已保存' : '保存进日记',
+      stages: stageLabels.map((label, i) => ({
+        no: '0' + (i + 1), label,
+        note: i < stageIdx ? '完成' : i === stageIdx ? '进行中' : '待处理',
+        opacity: i <= stageIdx ? 1 : 0.4,
+      })),
+      history: [
+        { date: '2026.08.13', mood: '专注', title: '把第三节推倒', excerpt: '一整天都在改提案，写到第三节推倒重来。晚上没跑，改成走了一圈。', t1: '#写作', t2: '#独处' },
+        { date: '2026.08.12', mood: '轻快', title: '雨停之后', excerpt: '早班地铁遇到旧同事，聊了十分钟。午后雨停，去了城南那家新开的书店。', t1: '#阅读', t2: '#城南' },
+        { date: '2026.08.11', mood: '疲惫', title: '会开得太长', excerpt: '三个会连在一起，中间只吃了个面包。晚上早睡，什么都没记。', t1: '#工作', t2: '#休息' },
+        { date: '2026.08.09', mood: '温和', title: '回家吃饭', excerpt: '回家吃了饭，妈妈问起工作的事。饭后陪她看了半小时电视剧。', t1: '#家人', t2: '#周末' },
+      ],
+      recording: s.recording,
+      recTime: '0:' + String(s.recSec).padStart(2, '0'),
+      levels: Array.from({ length: 26 }, (_, i) => ({
+        h: Math.round(6 + 34 * Math.abs(Math.sin(i * 1.7 + s.recSec * 1.1))) + 'px',
+      })),
+      micOn: s.micOn,
+      micOff: !s.micOn,
+      micModeLabel: s.micOn ? '麦克风已开 · 说完点发送' : '已暂停 · 点麦克风继续',
+      startRec: () => this.beginRec(),
+      toggleMic: () => {
+        if (this.state.micOn) { clearInterval(this._stream); clearInterval(this._r); this.setState({ micOn: false }); }
+        else { this.setState({ micOn: true }); this.startStream(); }
+      },
+      confirmText: s.confirmText,
+      sendDisabled: s.confirmText.trim() === '',
+      polishing: s.polishing,
+      polishLabel: s.polished ? '还原转写原文' : '轻润色（断句 · 去口水词）',
+      onConfirmText: e => this.setState({ confirmText: e.target.value }),
+      cancelRec: () => { this.stopTimers(); this.setState({ recording: false, micOn: false, confirmText: '', polished: false }); },
+      togglePolish: () => {
+        clearInterval(this._stream);
+        const i = this.state.voiceIdx % this.RAW.length;
+        if (this.state.polished) { this.setState({ polished: false, confirmText: this.RAW[i] }); return; }
+        this.setState({ polishing: true });
+        setTimeout(() => this.setState({ polishing: false, polished: true, confirmText: this.POLISHED[i] }), 1400);
+      },
+      commitEntry: () => {
+        this.stopTimers();
+        const d = new Date();
+        const time = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        this.setState(st => ({
+          recording: false,
+          micOn: false,
+          voiceIdx: st.voiceIdx + 1,
+          entries: st.entries.concat([{
+            time,
+            text: st.confirmText,
+            voice: Math.max(3, st.recSec) + '″' + (st.polished ? ' · 已润色' : ' · 已转写'),
+          }]),
+        }));
+      },
+      startGenerate: () => { this.setState({ screen: 'gen', progress: 0, saved: false, showSource: false }); this.run(); },
+      goHome: () => { clearInterval(this._t); this.setState({ screen: 'home' }); },
+      goHistory: () => this.setState({ screen: 'history' }),
+      goSettings: () => this.setState({ screen: 'settings' }),
+      toggleSource: () => this.setState(st => ({ showSource: !st.showSource })),
+      onSave: () => this.setState({ saved: true }),
+      swapTier: () => this.setState({ tier: this.tier === '1.7B' ? '4B' : '1.7B' }),
+      toggleCloud: () => this.setState({ cloud: !this.cloud }),
+    };
+  }
+
+  firstQueued() {
+    const p = this.state.pending.find(x => x.sel && !x.done);
+    return p ? p.date : null;
+  }
+
+  toggleDay(date) {
+    if (this.state.queued) return;
+    this.setState(s => ({ pending: s.pending.map(p => (p.date === date ? { ...p, sel: !p.sel } : p)) }));
+  }
+
+  runCatchup() {
+    if (this.state.queued) return;
+    this.setState({ queued: true });
+    clearInterval(this._q);
+    this._q = setInterval(() => {
+      const next = this.firstQueued();
+      if (!next) { clearInterval(this._q); this.setState({ queued: false }); return; }
+      this.setState(s => ({ pending: s.pending.map(p => (p.date === next ? { ...p, done: true } : p)) }));
+    }, 1600);
+  }
+
+  tapRow(i) {
+    if (this.state.editIdx === i) return;
+    if (this.state.focusIdx === i) {
+      this.setState({ editIdx: i, editText: this.state.entries[i].text, focusIdx: null });
+      return;
+    }
+    if (this.state.editIdx !== null) this.commitEdit(() => this.setState({ focusIdx: i }));
+    else this.setState({ focusIdx: i });
+  }
+
+  newLine() {
+    if (this.state.editIdx !== null) { this.commitEdit(); return; }
+    const d = new Date();
+    const time = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    this.setState(s => ({
+      entries: s.entries.concat([{ time, text: '', voice: '' }]),
+      editIdx: s.entries.length,
+      editText: '',
+      focusIdx: null,
+    }));
+  }
+
+  commitEdit(then) {
+    const i = this.state.editIdx;
+    if (i === null) { if (then) then(); return; }
+    const text = this.state.editText.trim();
+    this.setState(s => ({
+      entries: text
+        ? s.entries.map((e, k) => (k === i ? { ...e, text } : e))
+        : s.entries.filter((e, k) => k !== i),
+      editIdx: null,
+      editText: '',
+    }), then);
+  }
+
+}
+</script>
+</body>
+</html>
