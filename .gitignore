@@ -10,3 +10,10 @@
 
 # Logs
 *.log
+
+# Xcode / SwiftPM
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+.swiftpm/
