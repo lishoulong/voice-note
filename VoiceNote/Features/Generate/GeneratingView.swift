@@ -65,11 +65,7 @@ struct GeneratingView: View {
         .task { await run() }
     }
 
-    private var sourceLabel: String {
-        DiaryGenerator.isModelAvailable
-            ? "On-device · Foundation Models"
-            : "On-device · 占位(真机启用模型)"
-    }
+    private var sourceLabel: String { DiaryGenerator.sourceLabel }
 
     private var etaLabel: String {
         "约剩 \(max(0, Int((1 - progress) * 40))) 秒"

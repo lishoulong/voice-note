@@ -1,0 +1,107 @@
+#import "LlamaBridge.h"
+#import <llama/llama.h>
+#include <vector>
+#include <string>
+
+@implementation LlamaBridge {
+    llama_model *_model;
+    llama_context *_ctx;
+    const llama_vocab *_vocab;
+}
+
+- (BOOL)isLoaded { return _model != NULL && _ctx != NULL; }
+
+- (BOOL)loadModelAtPath:(NSString *)path contextSize:(int)nCtx {
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ llama_backend_init(); });
+
+    llama_model_params mp = llama_model_default_params();
+    mp.n_gpu_layers = 99;   // 全量 offload 到 Metal
+    _model = llama_model_load_from_file(path.UTF8String, mp);
+    if (_model == NULL) return NO;
+
+    llama_context_params cp = llama_context_default_params();
+    cp.n_ctx = (uint32_t)nCtx;
+    cp.n_batch = 512;
+    _ctx = llama_init_from_model(_model, cp);
+    if (_ctx == NULL) {
+        llama_model_free(_model);
+        _model = NULL;
+        return NO;
+    }
+    _vocab = llama_model_get_vocab(_model);
+    return YES;
+}
+
+- (NSString *)generateWithSystem:(NSString *)system
+                            user:(NSString *)user
+                         grammar:(NSString *)grammar
+                       maxTokens:(int)maxTokens {
+    if (![self isLoaded]) return nil;
+
+    @autoreleasepool {
+        // 1) 套用模型内置 chat template(Qwen)
+        std::string sys = system ? system.UTF8String : "";
+        std::string usr = user ? user.UTF8String : "";
+        llama_chat_message msgs[2] = {
+            { "system", sys.c_str() },
+            { "user",   usr.c_str() },
+        };
+        const char *tmpl = llama_model_chat_template(_model, NULL);
+        if (tmpl == NULL) return nil;   // Qwen GGUF 应内置 template
+        std::vector<char> tbuf(sys.size() + usr.size() + 2048);
+        int32_t tlen = llama_chat_apply_template(tmpl, msgs, 2, true,
+                                                 tbuf.data(), (int32_t)tbuf.size());
+        if (tlen < 0) return nil;
+        if (tlen > (int32_t)tbuf.size()) {
+            tbuf.resize(tlen);
+            tlen = llama_chat_apply_template(tmpl, msgs, 2, true,
+                                             tbuf.data(), (int32_t)tbuf.size());
+        }
+        std::string prompt(tbuf.data(), tlen);
+
+        // 2) tokenize(先取长度,再填充)
+        int32_t n_prompt = -llama_tokenize(_vocab, prompt.c_str(), (int32_t)prompt.size(),
+                                           NULL, 0, true, true);
+        if (n_prompt <= 0) return nil;
+        std::vector<llama_token> tokens(n_prompt);
+        if (llama_tokenize(_vocab, prompt.c_str(), (int32_t)prompt.size(),
+                           tokens.data(), n_prompt, true, true) < 0) return nil;
+
+        // 3) sampler chain:grammar(结构化) + top_k/top_p/temp + dist
+        llama_sampler *smpl = llama_sampler_chain_init(llama_sampler_chain_default_params());
+        if (grammar.length > 0) {
+            llama_sampler *g = llama_sampler_init_grammar(_vocab, grammar.UTF8String, "root");
+            if (g) llama_sampler_chain_add(smpl, g);
+        }
+        llama_sampler_chain_add(smpl, llama_sampler_init_top_k(20));
+        llama_sampler_chain_add(smpl, llama_sampler_init_top_p(0.8f, 1));
+        llama_sampler_chain_add(smpl, llama_sampler_init_temp(0.6f));
+        llama_sampler_chain_add(smpl, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
+
+        // 4) decode 循环
+        std::string result;
+        llama_batch batch = llama_batch_get_one(tokens.data(), (int32_t)tokens.size());
+        llama_token newTok = 0;   // 循环外持有,保证 &newTok 生命周期跨迭代
+        for (int i = 0; i < maxTokens; i++) {
+            if (llama_decode(_ctx, batch) != 0) break;
+            newTok = llama_sampler_sample(smpl, _ctx, -1);
+            if (llama_vocab_is_eog(_vocab, newTok)) break;
+            char piece[512];
+            int32_t np = llama_token_to_piece(_vocab, newTok, piece, sizeof(piece), 0, true);
+            if (np > 0) result.append(piece, np);
+            batch = llama_batch_get_one(&newTok, 1);
+        }
+        llama_sampler_free(smpl);
+
+        return [NSString stringWithUTF8String:result.c_str()];
+    }
+}
+
+- (void)unload {
+    if (_ctx) { llama_free(_ctx); _ctx = NULL; }
+    if (_model) { llama_model_free(_model); _model = NULL; }
+    _vocab = NULL;
+}
+
+@end

@@ -12,6 +12,8 @@
 *.log
 
 # Xcode / SwiftPM
+# llama.cpp XCFramework(855MB,过大不入库;开发者用 scripts 或手动下载解压到 Frameworks/)
+Frameworks/
 DerivedData/
 build/
 *.xcuserstate

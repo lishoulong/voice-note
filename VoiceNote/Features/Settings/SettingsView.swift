@@ -4,6 +4,7 @@ struct SettingsView: View {
     @Environment(Router.self) private var router
     @State private var tierIs4B = false
     @State private var cloud = false
+    @State private var downloader = ModelDownloader.shared
 
     private var tierLabel: String { tierIs4B ? "4B" : "1.7B" }
     private var otherTierLabel: String { tierIs4B ? "1.7B" : "4B" }
@@ -42,20 +43,56 @@ struct SettingsView: View {
                 HStack {
                     Text("Qwen3 \(tierLabel) · Q4_K_M").font(.serifBody(15))
                     Spacer()
-                    Tag(text: "使用中", kind: .accent)
+                    Tag(text: modelReady ? "已就位" : "未下载", kind: modelReady ? .accent : .neutral)
                 }
                 .padding(.bottom, Space.s2)
                 .overlay(alignment: .bottom) { HRule() }
-                Text("本机可用内存 5.4 GB,两档都可运行。4B 成稿更整齐,单次约多 40 秒。")
+
+                Text("iPhone 14(6GB)推荐 1.7B。整理今日全程在本机用 llama.cpp + Qwen 生成,不联网。")
                     .font(.serifBody(13)).lineSpacing(3).foregroundStyle(DC.neutral700)
-                Button { withAnimation { tierIs4B.toggle() } } label: {
-                    Text("切换到 \(otherTierLabel)").frame(maxWidth: .infinity)
+
+                downloadStatus
+            }
+        }
+    }
+
+    private var modelReady: Bool {
+        if case .done = downloader.status { return true }
+        return false
+    }
+
+    @ViewBuilder
+    private var downloadStatus: some View {
+        switch downloader.status {
+        case .done:
+            HStack(spacing: Space.s2) {
+                Image(systemName: "checkmark.circle").foregroundStyle(DC.accent700)
+                Text("模型已就位 · 可完全本机生成").font(.serifBody(13)).foregroundStyle(DC.accent700)
+                Spacer()
+                Button("删除") { downloader.deleteModel() }.buttonStyle(GhostButton())
+            }
+        case .downloading:
+            VStack(alignment: .leading, spacing: 6) {
+                ProgressBar(value: downloader.progress)
+                HStack {
+                    Text(String(format: "下载中 %.0f / %.0f MB", downloader.receivedMB, downloader.totalMB))
+                        .font(.serifBody(12)).monospacedDigit().foregroundStyle(DC.neutral600)
+                    Spacer()
+                    Button("取消") { downloader.cancel() }.buttonStyle(GhostButton())
+                }
+            }
+        case .idle:
+            Button { downloader.start() } label: {
+                Text("下载 Qwen3-1.7B(~1.1GB · 仅 Wi-Fi)").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(SecondaryButton())
+        case .failed(let msg):
+            VStack(alignment: .leading, spacing: 6) {
+                Text("下载失败:\(msg)").font(.serifBody(12)).foregroundStyle(DC.neutral700)
+                Button { downloader.start() } label: {
+                    Text("重试").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(SecondaryButton())
-                Button { router.go(.onboarding) } label: {
-                    Text("重新分档下载").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(GhostButton())
             }
         }
     }
@@ -97,7 +134,7 @@ struct SettingsView: View {
             }
             .frame(height: 3)
             HStack {
-                Text("模型 2.4 GB"); Spacer()
+                Text("模型 1.1 GB"); Spacer()
                 Text("录音 340 MB"); Spacer()
                 Text("笔记 6 MB")
             }

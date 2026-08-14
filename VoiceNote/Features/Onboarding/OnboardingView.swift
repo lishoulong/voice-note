@@ -27,7 +27,10 @@ struct OnboardingView: View {
                     Text("下载在后台进行,期间你可以先开始记录。建议接入 Wi-Fi。")
                         .font(.serifBody(12.5)).foregroundStyle(DC.neutral600).lineSpacing(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Button { router.go(.home) } label: {
+                    Button {
+                        ModelDownloader.shared.start()
+                        router.go(.home)
+                    } label: {
                         Text("开始下载并进入").frame(maxWidth: .infinity)
                     }
                     .buttonStyle(PrimaryButton())

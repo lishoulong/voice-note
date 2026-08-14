@@ -3,11 +3,13 @@ import Foundation
 import FoundationModels
 #endif
 
-/// 用 Apple Foundation Models(iOS 26+)把当天条目整理成结构化成稿。
-/// 不可用(旧设备 / 模拟器 / Apple Intelligence 未开)或失败时返回 nil,由调用方降级到占位。
+/// 把当天条目整理成结构化成稿。
+/// 主路:llama.cpp + Qwen3-1.7B(已下载 GGUF,覆盖 iPhone 14 等 A17 以下机型)。
+/// 降级:Apple Foundation Models(iPhone 15 Pro+ / iOS 26)。都不可用则返回 nil(调用方用占位)。
 enum DiaryGenerator {
 
     static var isModelAvailable: Bool {
+        if LlamaDiaryEngine.isModelDownloaded { return true }
         #if canImport(FoundationModels)
         if #available(iOS 26, *) {
             if case .available = SystemLanguageModel.default.availability { return true }
@@ -16,7 +18,26 @@ enum DiaryGenerator {
         return false
     }
 
+    static var sourceLabel: String {
+        if LlamaDiaryEngine.isModelDownloaded { return "On-device · Qwen3-1.7B" }
+        #if canImport(FoundationModels)
+        if #available(iOS 26, *), case .available = SystemLanguageModel.default.availability {
+            return "On-device · Foundation Models"
+        }
+        #endif
+        return "On-device · 占位(未下载模型)"
+    }
+
     static func generate(from entries: [Entry], date: Date) async -> DiaryNote? {
+        // 主路:llama.cpp + Qwen(本地 GGUF)
+        if LlamaDiaryEngine.isModelDownloaded {
+            let items = entries.map { (time: $0.timeLabel, text: $0.text) }
+            if let note = await LlamaDiaryEngine.shared.makeDraft(entries: items, date: date) {
+                return note
+            }
+        }
+
+        // 降级:Apple Foundation Models(iPhone 15 Pro+)
         #if canImport(FoundationModels)
         if #available(iOS 26, *), case .available = SystemLanguageModel.default.availability {
             do {
@@ -30,6 +51,7 @@ enum DiaryGenerator {
             }
         }
         #endif
+
         return nil
     }
 
