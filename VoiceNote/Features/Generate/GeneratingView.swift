@@ -1,7 +1,9 @@
 import SwiftUI
+import SwiftData
 
 struct GeneratingView: View {
     @Environment(Router.self) private var router
+    @Query(sort: \Entry.createdAt, order: .forward) private var entries: [Entry]
 
     @State private var progress: Double = 0
     @State private var stageIndex = 0
@@ -16,7 +18,7 @@ struct GeneratingView: View {
         Screen {
             VStack(alignment: .leading, spacing: Space.s8) {
                 VStack(alignment: .leading, spacing: Space.s2) {
-                    Kicker(text: "On-device · Qwen3 1.7B")
+                    Kicker(text: sourceLabel)
                     Text("正在整理今天").font(.heading(34))
                     Text("全程在这台设备上完成,不联网。可以离开此页,完成后通知你。")
                         .font(.serifBody(14)).lineSpacing(4)
@@ -63,19 +65,28 @@ struct GeneratingView: View {
         .task { await run() }
     }
 
+    private var sourceLabel: String {
+        DiaryGenerator.isModelAvailable
+            ? "On-device · Foundation Models"
+            : "On-device · 占位(真机启用模型)"
+    }
+
     private var etaLabel: String {
         "约剩 \(max(0, Int((1 - progress) * 40))) 秒"
     }
 
     private func run() async {
-        // 骨架:把本地生成 30–150 秒的等待压缩到 ~4 秒展示;真实实现替换为模型推理进度回调
-        for step in 1...30 {
-            try? await Task.sleep(nanoseconds: 130_000_000)
-            withAnimation(.linear(duration: 0.13)) { progress = Double(step) / 30 }
-            stageIndex = min(2, Int(Double(step) / 30 * 3))
+        // 并发启动真实生成(不可用时立即返回 nil);同时跑进度动画给出等待感
+        async let generated = DiaryGenerator.generate(from: entries, date: .now)
+        for step in 1...20 {
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            withAnimation(.linear(duration: 0.15)) { progress = Double(step) / 22 }
+            stageIndex = min(2, Int(Double(step) / 20 * 3))
         }
-        try? await Task.sleep(nanoseconds: 250_000_000)
-        router.showResult(SampleData.makeTodayDraft())
+        let note = (await generated) ?? SampleData.makeTodayDraft()
+        withAnimation { progress = 1; stageIndex = 2 }
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        router.showResult(note)
     }
 }
 

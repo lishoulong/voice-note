@@ -6,13 +6,28 @@ import SwiftData
 @MainActor
 enum SampleData {
     static let container: ModelContainer = {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try! ModelContainer(for: Entry.self, DiaryNote.self, configurations: config)
-        let ctx = container.mainContext
-        todayEntries.forEach { ctx.insert($0) }
-        historyNotes.forEach { ctx.insert($0) }
+        let container: ModelContainer
+        do {
+            // 默认配置 = 磁盘持久化(Application Support/default.store),重启保留
+            container = try ModelContainer(for: Entry.self, DiaryNote.self)
+        } catch {
+            // 磁盘容器创建失败(如 schema 变更)时回退内存,保证 App 仍能启动
+            let mem = ModelConfiguration(isStoredInMemoryOnly: true)
+            container = try! ModelContainer(for: Entry.self, DiaryNote.self, configurations: mem)
+        }
+        seedIfNeeded(container.mainContext)
         return container
     }()
+
+    /// 仅在空库(首次启动)时填充示例数据;之后使用真实持久化数据
+    static func seedIfNeeded(_ ctx: ModelContext) {
+        let entryCount = (try? ctx.fetchCount(FetchDescriptor<Entry>())) ?? 0
+        let noteCount = (try? ctx.fetchCount(FetchDescriptor<DiaryNote>())) ?? 0
+        guard entryCount == 0, noteCount == 0 else { return }
+        todayEntries.forEach { ctx.insert($0) }
+        historyNotes.forEach { ctx.insert($0) }
+        try? ctx.save()
+    }
 
     static func date(_ y: Int, _ mo: Int, _ d: Int, _ h: Int = 9, _ mi: Int = 0) -> Date {
         var comp = DateComponents()

@@ -21,6 +21,7 @@ struct HomeView: View {
             if showRecording {
                 RecordingSheet(isPresented: $showRecording) { text, seconds in
                     context.insert(Entry(createdAt: .now, text: text, voiceSeconds: seconds))
+                    try? context.save()
                 }
                 .transition(.opacity)
                 .zIndex(1)
@@ -114,6 +115,8 @@ struct HomeView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .disabled(entries.isEmpty)
+            .opacity(entries.isEmpty ? 0.4 : 1)
             HRule()
             Button { withAnimation { showRecording = true } } label: {
                 HStack(spacing: Space.s2) {
@@ -131,16 +134,17 @@ struct HomeView: View {
     }
 }
 
-// MARK: - 录音 / 实时转写面板
+// MARK: - 录音 / 实时听写面板
 struct RecordingSheet: View {
     @Binding var isPresented: Bool
     var onSend: (String, Int?) -> Void
 
-    @State private var text = "刚跟阿哲说好周末去爬山,顺路看看城南新开的那家书店。"
-    @State private var polishing = true
+    @State private var dictation = SpeechDictation()
+    @State private var text = ""
 
-    private let levels: [CGFloat] = [0.3,0.6,0.9,0.5,0.7,1.0,0.4,0.6,0.8,0.5,0.3,0.7,
-                                     0.9,0.6,0.4,0.8,1.0,0.5,0.6,0.3,0.7,0.9,0.4,0.6]
+    private var canSend: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -148,59 +152,11 @@ struct RecordingSheet: View {
                 .onTapGesture { close() }
 
             VStack(alignment: .leading, spacing: Space.s3) {
-                HStack {
-                    HStack(spacing: Space.s2) {
-                        Circle().fill(DC.accent).frame(width: 6, height: 6)
-                        Kicker(text: "Listening · 本机实时转写", color: DC.accent700)
-                    }
-                    Spacer()
-                    Text("00:12").font(.serifBody(12.5)).monospacedDigit()
-                        .foregroundStyle(DC.neutral600)
-                }
-
-                Text(text)
-                    .font(.serifBody(15.5)).lineSpacing(6)
-                    .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
-                    .padding(Space.s3)
-                    .background(DC.bg)
-                    .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(DC.divider, lineWidth: 1))
-
-                if polishing {
-                    HStack(spacing: Space.s2) {
-                        ProgressView().controlSize(.mini)
-                        Text("轻润色中 · 本机 1.7B · 只断句去口水词")
-                            .font(.serifBody(13)).foregroundStyle(DC.accent700)
-                    }
-                }
-
-                HStack {
-                    Button { polishing.toggle() } label: {
-                        Text(polishing ? "关闭轻润色" : "开启轻润色")
-                            .font(.serifBody(13.5)).foregroundStyle(DC.accent700)
-                            .underline()
-                    }
-                    .buttonStyle(.plain)
-                    Spacer()
-                    Text("单条上限 01:00").font(.serifBody(11.5)).foregroundStyle(DC.neutral600)
-                }
-
-                HStack(alignment: .bottom, spacing: 3) {
-                    ForEach(levels.indices, id: \.self) { i in
-                        Rectangle().fill(DC.accent400)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: max(3, 34 * levels[i]))
-                    }
-                }
-                .frame(height: 34)
-
-                HStack(spacing: Space.s3) {
-                    Button("丢弃") { close() }
-                        .buttonStyle(SecondaryButton())
-                    Button { send() } label: {
-                        Text("发送到笔记").frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(PrimaryButton())
-                }
+                header
+                editor
+                statusLine
+                waveform
+                controls
             }
             .padding(Space.s4)
             .padding(.bottom, Space.s6)
@@ -209,12 +165,115 @@ struct RecordingSheet: View {
             .clipShape(UnevenRoundedRectangle(topLeadingRadius: Radius.lg, topTrailingRadius: Radius.lg))
             .shadow(color: DC.text.opacity(0.22), radius: 16, y: -4)
         }
+        .task { await dictation.start() }
+        .onDisappear { dictation.stop() }
+        .onChange(of: dictation.transcript) { _, new in
+            if !new.isEmpty { text = new }
+        }
     }
 
-    private func close() { withAnimation { isPresented = false } }
+    private var header: some View {
+        HStack {
+            HStack(spacing: Space.s2) {
+                Circle()
+                    .fill(dictation.isListening ? DC.accent : DC.neutral400)
+                    .frame(width: 6, height: 6)
+                Kicker(text: headerLabel,
+                       color: dictation.isListening ? DC.accent700 : DC.neutral600)
+            }
+            Spacer()
+            Text(timeLabel).font(.serifBody(12.5)).monospacedDigit()
+                .foregroundStyle(DC.neutral600)
+        }
+    }
+
+    private var headerLabel: String {
+        switch dictation.status {
+        case .listening:   "Listening · 本机实时转写"
+        case .denied:      "权限未开 · 可直接打字"
+        case .unavailable: "听写不可用 · 可直接打字"
+        case .idle:        "已就绪 · 点麦克风开始"
+        }
+    }
+
+    private var editor: some View {
+        TextField("说话吧,文字会实时出现;也可直接打字…", text: $text, axis: .vertical)
+            .font(.serifBody(15.5)).lineSpacing(6)
+            .frame(minHeight: 92, alignment: .topLeading)
+            .padding(Space.s3)
+            .background(DC.bg)
+            .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(DC.divider, lineWidth: 1))
+    }
+
+    private var statusLine: some View {
+        HStack {
+            switch dictation.status {
+            case .denied:
+                Text("到 设置 开启麦克风与语音识别")
+                    .font(.serifBody(12.5)).foregroundStyle(DC.neutral600)
+            case .unavailable:
+                Text("换真机或联网可用本机听写")
+                    .font(.serifBody(12.5)).foregroundStyle(DC.neutral600)
+            default:
+                EmptyView()
+            }
+            Spacer()
+            Text("单条上限 01:00").font(.serifBody(11.5)).foregroundStyle(DC.neutral600)
+        }
+    }
+
+    private var waveform: some View {
+        HStack(alignment: .center, spacing: 3) {
+            ForEach(dictation.levels.indices, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(DC.accent400)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: max(3, 34 * dictation.levels[i]))
+            }
+        }
+        .frame(height: 34)
+        .animation(.linear(duration: 0.1), value: dictation.levels)
+    }
+
+    private var controls: some View {
+        HStack(spacing: Space.s3) {
+            Button("丢弃") { close() }.buttonStyle(SecondaryButton())
+            Button { toggleMic() } label: {
+                Image(systemName: dictation.isListening ? "mic.fill" : "mic.slash")
+                    .frame(width: 20, height: 20)
+            }
+            .buttonStyle(SecondaryButton())
+            Button { send() } label: {
+                Text("发送到笔记").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(PrimaryButton())
+            .disabled(!canSend)
+            .opacity(canSend ? 1 : 0.45)
+        }
+    }
+
+    private var timeLabel: String {
+        String(format: "%02d:%02d / 01:00", dictation.seconds / 60, dictation.seconds % 60)
+    }
+
+    private func toggleMic() {
+        if dictation.isListening {
+            dictation.stop()
+        } else {
+            Task { await dictation.start() }
+        }
+    }
+
+    private func close() {
+        dictation.stop()
+        withAnimation { isPresented = false }
+    }
+
     private func send() {
-        onSend(text, 12)
-        close()
+        dictation.stop()
+        let secs = dictation.seconds > 0 ? dictation.seconds : nil
+        onSend(text, secs)
+        withAnimation { isPresented = false }
     }
 }
 

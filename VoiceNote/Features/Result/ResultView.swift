@@ -157,6 +157,7 @@ struct ResultView: View {
         guard !saved, let n = note else { return }
         n.savedToDiary = true
         context.insert(n)
+        try? context.save()
         saved = true
     }
 }
