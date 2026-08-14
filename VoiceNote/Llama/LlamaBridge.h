@@ -6,6 +6,10 @@ NS_ASSUME_NONNULL_BEGIN
 /// 负责加载 GGUF 模型,并用 chat template + GBNF grammar 做一次结构化生成。
 @interface LlamaBridge : NSObject
 
+/// 全局暂停开关:App 退到后台时置 YES(iOS 禁止后台提交 GPU 任务,硬提交会把
+/// Metal 后端打入错误态)。推理循环见到 YES 会原地等待,回前台置 NO 后自动续跑。
++ (void)setGloballySuspended:(BOOL)suspended;
+
 /// 模型是否已加载
 @property (nonatomic, readonly) BOOL isLoaded;
 

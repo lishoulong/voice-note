@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import UserNotifications
+import UIKit
 
 /// 「整理今日」的生成协调器:任务由它持有,不随等待页销毁 ——
 /// 用户点「后台运行」离开后生成继续,完成时发本地通知 + 今天页出横幅承接。
@@ -10,7 +11,20 @@ import UserNotifications
 @Observable
 final class GenerationCoordinator {
     static let shared = GenerationCoordinator()
-    private init() {}
+
+    private init() {
+        // iOS 禁止后台提交 GPU 任务:退后台前暂停推理循环,回前台续跑,
+        // 否则 Metal 命令被拒且后端进入错误态(kIOGPU...BackgroundExecutionNotPermitted)
+        let nc = NotificationCenter.default
+        nc.addObserver(forName: UIApplication.willResignActiveNotification,
+                       object: nil, queue: .main) { _ in
+            LlamaBridge.setGloballySuspended(true)
+        }
+        nc.addObserver(forName: UIApplication.didBecomeActiveNotification,
+                       object: nil, queue: .main) { _ in
+            LlamaBridge.setGloballySuspended(false)
+        }
+    }
 
     private(set) var isRunning = false
     /// 已完成但尚未查看的成稿(等待页在场则直接跳结果;不在场由横幅/通知承接)

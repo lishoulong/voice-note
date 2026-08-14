@@ -2,19 +2,31 @@
 #import <llama/llama.h>
 #include <vector>
 #include <string>
+#include <atomic>
+#include <unistd.h>
+
+// App 退后台时置位;推理循环等待而非提交 GPU(否则 Metal 后端进入错误态)
+static std::atomic<bool> g_suspended{false};
 
 @implementation LlamaBridge {
     llama_model *_model;
     llama_context *_ctx;
     const llama_vocab *_vocab;
     int _nCtx;
+    BOOL _broken;   // decode 失败后 Metal 后端不可恢复,需整体重建
 }
 
-- (BOOL)isLoaded { return _model != NULL && _ctx != NULL; }
++ (void)setGloballySuspended:(BOOL)suspended {
+    g_suspended.store(suspended);
+}
+
+- (BOOL)isLoaded { return _model != NULL && _ctx != NULL && !_broken; }
 
 - (BOOL)loadModelAtPath:(NSString *)path contextSize:(int)nCtx {
     static dispatch_once_t once;
     dispatch_once(&once, ^{ llama_backend_init(); });
+    [self unload];        // 后端中毒或换档时整体重建
+    _broken = NO;
 
     llama_model_params mp = llama_model_default_params();
     mp.n_gpu_layers = 99;   // 全量 offload 到 Metal
@@ -93,8 +105,10 @@
         llama_batch batch = llama_batch_get_one(tokens.data(), (int32_t)tokens.size());
         llama_token newTok = 0;   // 循环外持有,保证 &newTok 生命周期跨迭代
         for (int i = 0; i < maxTokens; i++) {
+            // App 在后台则原地等待(iOS 禁止后台 GPU),回前台自动续跑
+            while (g_suspended.load()) { usleep(150000); }
             if (n_prompt + i >= _nCtx - 1) break;   // 触顶上下文即收,防位置溢出
-            if (llama_decode(_ctx, batch) != 0) break;
+            if (llama_decode(_ctx, batch) != 0) { _broken = YES; break; }
             newTok = llama_sampler_sample(smpl, _ctx, -1);
             if (llama_vocab_is_eog(_vocab, newTok)) break;
             char piece[512];
@@ -104,6 +118,7 @@
         }
         llama_sampler_free(smpl);
 
+        if (_broken) return nil;   // 后端已错误态,产物不可信;下次 isLoaded=NO 触发重建
         return [NSString stringWithUTF8String:result.c_str()];
     }
 }
