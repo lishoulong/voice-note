@@ -110,6 +110,9 @@ static void vn_llama_log_cb(enum ggml_log_level level, const char *text, void *u
         }
         llama_sampler_chain_add(smpl, llama_sampler_init_top_k(20));
         llama_sampler_chain_add(smpl, llama_sampler_init_top_p(0.8f, 1));
+        // Qwen 官方推荐 presence_penalty≈1.5:抑制小模型逐字重复整段的毛病
+        llama_sampler_chain_add(smpl, llama_sampler_init_penalties(
+            llama_vocab_n_tokens(_vocab), 256, 1.0f, 0.0f, 1.5f));
         llama_sampler_chain_add(smpl, llama_sampler_init_temp(0.6f));
         llama_sampler_chain_add(smpl, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
 

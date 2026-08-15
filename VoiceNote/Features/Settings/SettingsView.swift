@@ -2,12 +2,11 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(Router.self) private var router
-    @State private var tierIs4B = false
     @State private var cloud = false
     @State private var downloader = ModelDownloader.shared
+    @AppStorage(ModelTier.storageKey) private var activeTierRaw = ModelTier.qwen1_7B.rawValue
 
-    private var tierLabel: String { tierIs4B ? "4B" : "1.7B" }
-    private var otherTierLabel: String { tierIs4B ? "1.7B" : "4B" }
+    private var activeTier: ModelTier { ModelTier(rawValue: activeTierRaw) ?? .qwen1_7B }
 
     var body: some View {
         Screen {
@@ -36,67 +35,84 @@ struct SettingsView: View {
         .padding(.vertical, Space.s3)
     }
 
+    // MARK: - Model(双档:1.7B 保底 / 4B 高质量)
     private var modelSection: some View {
         VStack(alignment: .leading, spacing: Space.s3) {
             Kicker(text: "Model")
-            VStack(alignment: .leading, spacing: Space.s2) {
-                HStack {
-                    Text("Qwen3 \(tierLabel) · Q4_K_M").font(.serifBody(15))
-                    Spacer()
-                    Tag(text: modelReady ? "已就位" : "未下载", kind: modelReady ? .accent : .neutral)
-                }
-                .padding(.bottom, Space.s2)
-                .overlay(alignment: .bottom) { HRule() }
-
-                Text("iPhone 14(6GB)推荐 1.7B。整理今日全程在本机用 llama.cpp + Qwen 生成,不联网。")
-                    .font(.serifBody(13)).lineSpacing(3).foregroundStyle(DC.neutral700)
-
-                downloadStatus
+            ForEach(ModelTier.allCases, id: \.rawValue) { tier in
+                tierRow(tier)
             }
+            Text("切换后,下一次「整理今日」即用所选模型。4B 生成时请尽量保持 App 前台。")
+                .font(.serifBody(12)).foregroundStyle(DC.neutral600).lineSpacing(3)
         }
     }
 
-    private var modelReady: Bool {
-        if case .done = downloader.status { return true }
-        return false
+    private func tierRow(_ tier: ModelTier) -> some View {
+        VStack(alignment: .leading, spacing: Space.s2) {
+            HStack {
+                Text("\(tier.displayName) · Q4_K_M").font(.serifBody(15))
+                Text(tier.sizeLabel).font(.serifBody(12)).monospacedDigit()
+                    .foregroundStyle(DC.neutral600)
+                Spacer()
+                statusTag(tier)
+            }
+            Text(tier.detail)
+                .font(.serifBody(12.5)).lineSpacing(3).foregroundStyle(DC.neutral700)
+
+            if downloader.downloadingTier == tier {
+                VStack(alignment: .leading, spacing: 6) {
+                    ProgressBar(value: downloader.progress)
+                    HStack {
+                        Text(String(format: "%.0f / %.0f MB", downloader.receivedMB, downloader.totalMB))
+                            .font(.serifBody(12)).monospacedDigit().foregroundStyle(DC.neutral600)
+                        Spacer()
+                        Button("取消") { downloader.cancel() }.buttonStyle(GhostButton())
+                    }
+                }
+            } else if tier.isDownloaded {
+                HStack(spacing: Space.s2) {
+                    if tier != activeTier {
+                        Button { activeTierRaw = tier.rawValue } label: {
+                            Text("启用").frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(SecondaryButton())
+                        Button("删除") { downloader.deleteModel(tier: tier) }
+                            .buttonStyle(GhostButton())
+                    }
+                }
+            } else {
+                Button { downloader.start(tier: tier) } label: {
+                    Text("下载 \(tier.displayName)(\(tier.sizeLabel) · 建议 Wi-Fi)")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(SecondaryButton())
+                .disabled(downloader.downloadingTier != nil)
+                .opacity(downloader.downloadingTier != nil ? 0.45 : 1)
+            }
+
+            if case .failed(let msg) = downloader.status, downloader.downloadingTier == nil, !tier.isDownloaded {
+                Text("上次下载失败:\(msg)")
+                    .font(.serifBody(11.5)).foregroundStyle(DC.neutral600)
+            }
+        }
+        .padding(.bottom, Space.s3)
+        .overlay(alignment: .bottom) { HRule() }
     }
 
     @ViewBuilder
-    private var downloadStatus: some View {
-        switch downloader.status {
-        case .done:
-            HStack(spacing: Space.s2) {
-                Image(systemName: "checkmark.circle").foregroundStyle(DC.accent700)
-                Text("模型已就位 · 可完全本机生成").font(.serifBody(13)).foregroundStyle(DC.accent700)
-                Spacer()
-                Button("删除") { downloader.deleteModel() }.buttonStyle(GhostButton())
-            }
-        case .downloading:
-            VStack(alignment: .leading, spacing: 6) {
-                ProgressBar(value: downloader.progress)
-                HStack {
-                    Text(String(format: "下载中 %.0f / %.0f MB", downloader.receivedMB, downloader.totalMB))
-                        .font(.serifBody(12)).monospacedDigit().foregroundStyle(DC.neutral600)
-                    Spacer()
-                    Button("取消") { downloader.cancel() }.buttonStyle(GhostButton())
-                }
-            }
-        case .idle:
-            Button { downloader.start() } label: {
-                Text("下载 Qwen3-1.7B(~1.1GB · 仅 Wi-Fi)").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(SecondaryButton())
-        case .failed(let msg):
-            VStack(alignment: .leading, spacing: 6) {
-                Text("下载失败:\(msg)").font(.serifBody(12)).foregroundStyle(DC.neutral700)
-                Button { downloader.start() } label: {
-                    Text("重试").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(SecondaryButton())
-            }
+    private func statusTag(_ tier: ModelTier) -> some View {
+        if tier == activeTier && tier.isDownloaded {
+            Tag(text: "使用中", kind: .accent)
+        } else if tier.isDownloaded {
+            Tag(text: "已就位", kind: .outline)
+        } else if downloader.downloadingTier == tier {
+            Tag(text: "下载中", kind: .accent)
+        } else {
+            Tag(text: "未下载", kind: .neutral)
         }
     }
 
+    // MARK: - Privacy
     private var privacySection: some View {
         VStack(alignment: .leading, spacing: Space.s3) {
             Kicker(text: "Privacy")
@@ -122,24 +138,22 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Storage(模型占用按实际文件计算)
     private var storageSection: some View {
-        VStack(alignment: .leading, spacing: Space.s3) {
+        let modelMB = ModelTier.allCases.reduce(0.0) { sum, t in
+            let size = (try? FileManager.default.attributesOfItem(atPath: t.fileURL.path)[.size] as? Int) ?? 0
+            return sum + Double(size ?? 0) / 1_048_576
+        }
+        return VStack(alignment: .leading, spacing: Space.s3) {
             Kicker(text: "Storage")
-            GeometryReader { geo in
-                HStack(spacing: 0) {
-                    Rectangle().fill(DC.accent).frame(width: geo.size.width * 0.62)
-                    Rectangle().fill(DC.accent300).frame(width: geo.size.width * 0.09)
-                    Rectangle().fill(DC.neutral300)
-                }
-            }
-            .frame(height: 3)
             HStack {
-                Text("模型 1.1 GB"); Spacer()
-                Text("录音 340 MB"); Spacer()
-                Text("笔记 6 MB")
+                Text(modelMB > 900
+                     ? String(format: "模型 %.1f GB", modelMB / 1024)
+                     : String(format: "模型 %.0f MB", modelMB))
+                Spacer()
+                Text("笔记 < 10 MB")
             }
             .font(.serifBody(12.5)).monospacedDigit().foregroundStyle(DC.neutral700)
-            Button("清理已转写录音") { }.buttonStyle(GhostButton())
         }
     }
 

@@ -8,15 +8,10 @@ actor LlamaDiaryEngine {
     private let bridge = LlamaBridge()
     private var loadedPath: String?
 
-    /// 模型存放路径:Application Support/Models/Qwen3-1.7B-Q4_K_M.gguf
-    nonisolated static var modelURL: URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("Models/Qwen3-1.7B-Q4_K_M.gguf")
-    }
+    /// 当前档位的模型路径(设置页可切 1.7B / 4B)
+    nonisolated static var modelURL: URL { ModelTier.active.fileURL }
 
-    nonisolated static var isModelDownloaded: Bool {
-        FileManager.default.fileExists(atPath: modelURL.path)
-    }
+    nonisolated static var isModelDownloaded: Bool { ModelTier.active.isDownloaded }
 
     private func ensureLoaded() -> Bool {
         let path = Self.modelURL.path
@@ -69,7 +64,7 @@ actor LlamaDiaryEngine {
         }
         return DiaryNote(date: date, title: d.title, moodLabel: d.mood, quote: d.quote,
                          sections: secs, tags: d.tags, people: d.people, places: d.places,
-                         sourceLabel: "本机 · Qwen3-1.7B")
+                         sourceLabel: ModelTier.active.sourceLabel)
     }
 
     /// 轻润色一段口语文字(断句/去口水词/修同音错字,保持原意与专名)。失败返回 nil。

@@ -16,9 +16,9 @@ struct OnboardingView: View {
 
                 VStack(spacing: Space.s3) {
                     modelCard(index: 0, name: "Qwen3 1.7B", tag: "推荐", tagKind: .accent,
-                              desc: "下载 1.5 GB · 峰值内存约 2.1 GB · 单次整理 30–60 秒。日常够用,发热小。")
-                    modelCard(index: 1, name: "Qwen3 4B", tag: "更整齐", tagKind: .outline,
-                              desc: "下载 2.9 GB · 峰值内存约 3.6 GB · 单次整理 70–150 秒。条目多、想要更好归纳时选它。")
+                              desc: "下载 1.1 GB · 峰值内存约 2.1 GB · 单次整理约 1 分钟。快、省电,分节较粗。")
+                    modelCard(index: 1, name: "Qwen3.5 4B", tag: "更整齐", tagKind: .outline,
+                              desc: "下载 2.6 GB · 内存偏紧 · 单次整理 2–3 分钟。分节、金句、人物明显更好。")
                 }
 
                 Spacer(minLength: Space.s6)
@@ -28,7 +28,9 @@ struct OnboardingView: View {
                         .font(.serifBody(12.5)).foregroundStyle(DC.neutral600).lineSpacing(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Button {
-                        ModelDownloader.shared.start()
+                        let tier: ModelTier = pick == 1 ? .qwen4B : .qwen1_7B
+                        ModelTier.active = tier
+                        ModelDownloader.shared.start(tier: tier)
                         router.go(.home)
                     } label: {
                         Text("开始下载并进入").frame(maxWidth: .infinity)

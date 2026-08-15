@@ -1,68 +1,64 @@
 import Foundation
 import SwiftUI
 
-/// 下载 Qwen3-1.7B GGUF 到 Application Support/Models/。
-/// 带 NSLog 诊断,方便在 Xcode console 定位下载卡点。
+/// 按档位下载 GGUF 到 Application Support/Models/(源:ModelScope 国内镜像)。
+/// 一次只下一个档;带 NSLog/AppLog 诊断。
 @MainActor
 @Observable
 final class ModelDownloader: NSObject {
     static let shared = ModelDownloader()
 
-    enum Status: Equatable { case idle, downloading, done, failed(String) }
+    enum Status: Equatable { case idle, downloading, failed(String) }
 
-    var status: Status
+    var status: Status = .idle
+    /// 正在下载的档位(nil = 没有进行中的下载)
+    var downloadingTier: ModelTier?
     var progress: Double = 0
     var receivedMB: Double = 0
     var totalMB: Double = 0
 
     @ObservationIgnored private var task: URLSessionDownloadTask?
+    @ObservationIgnored private var targetTier: ModelTier?
 
-    // Qwen3-1.7B Q4_K_M(约 1.1GB)
-    static let remoteURL = URL(string: "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf")!
-
-    private override init() {
-        status = LlamaDiaryEngine.isModelDownloaded ? .done : .idle
-        super.init()
-    }
+    private override init() { super.init() }
 
     @ObservationIgnored private lazy var session: URLSession = {
         let cfg = URLSessionConfiguration.default
-        cfg.allowsCellularAccess = true            // 放宽:允许任意网络,避免 Wi-Fi 判定导致静默等待
+        cfg.allowsCellularAccess = true
         cfg.timeoutIntervalForRequest = 60
-        cfg.timeoutIntervalForResource = 3600
+        cfg.timeoutIntervalForResource = 7200
         return URLSession(configuration: cfg, delegate: self, delegateQueue: nil)
     }()
 
-    func start() {
-        if LlamaDiaryEngine.isModelDownloaded { status = .done; return }
-        guard status != .downloading else { return }
+    func start(tier: ModelTier) {
+        if tier.isDownloaded { return }
+        guard downloadingTier == nil else { return }   // 一次只下一个
+        downloadingTier = tier
+        targetTier = tier
         status = .downloading
         progress = 0; receivedMB = 0; totalMB = 0
-        NSLog("[Downloader] start -> %@", Self.remoteURL.absoluteString)
-        let t = session.downloadTask(with: Self.remoteURL)
+        AppLog.log("下载器: 开始下载 \(tier.displayName) <- \(tier.downloadURL.absoluteString)")
+        let t = session.downloadTask(with: tier.downloadURL)
         task = t
         t.resume()
-        NSLog("[Downloader] resumed, task.state=%ld", t.state.rawValue)
     }
 
     func cancel() {
         task?.cancel()
         task = nil
+        downloadingTier = nil
         if status == .downloading { status = .idle }
     }
 
-    func deleteModel() {
-        try? FileManager.default.removeItem(at: LlamaDiaryEngine.modelURL)
-        status = .idle
-        progress = 0
-        receivedMB = 0
-        totalMB = 0
+    func deleteModel(tier: ModelTier) {
+        try? FileManager.default.removeItem(at: tier.fileURL)
+        AppLog.log("下载器: 已删除 \(tier.displayName)")
     }
 }
 
 extension ModelDownloader: URLSessionDownloadDelegate {
     nonisolated func urlSession(_ session: URLSession, taskIsWaitingForConnectivity task: URLSessionTask) {
-        NSLog("[Downloader] waiting for connectivity…")
+        AppLog.log("下载器: 等待网络连接…")
     }
 
     nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
@@ -72,9 +68,6 @@ extension ModelDownloader: URLSessionDownloadDelegate {
         let recv = Double(totalBytesWritten) / 1_048_576
         let total = totalBytesExpectedToWrite > 0 ? Double(totalBytesExpectedToWrite) / 1_048_576 : 0
         let p = totalBytesExpectedToWrite > 0 ? Double(totalBytesWritten) / Double(totalBytesExpectedToWrite) : 0
-        if totalBytesWritten < 2_000_000 {   // 只在开头打几条,避免刷屏
-            NSLog("[Downloader] progress %.1f / %.1f MB", recv, total)
-        }
         Task { @MainActor in
             self.receivedMB = recv
             self.totalMB = total
@@ -84,9 +77,12 @@ extension ModelDownloader: URLSessionDownloadDelegate {
 
     nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                                 didFinishDownloadingTo location: URL) {
-        NSLog("[Downloader] finished, moving file to Models/")
-        let dest = LlamaDiaryEngine.modelURL
+        // 必须在回调内同步移动:location 临时文件回调返回后即被清理
         let fm = FileManager.default
+        // targetTier 是 MainActor 隔离的;这里用下载 URL 反查档位,避免跨隔离读取
+        let url = downloadTask.originalRequest?.url
+        let tier = ModelTier.allCases.first { $0.downloadURL == url } ?? .qwen1_7B
+        let dest = tier.fileURL
         do {
             try fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
             if fm.fileExists(atPath: dest.path) { try fm.removeItem(at: dest) }
@@ -95,25 +91,32 @@ extension ModelDownloader: URLSessionDownloadDelegate {
             var vals = URLResourceValues()
             vals.isExcludedFromBackup = true
             try? d.setResourceValues(vals)
-            NSLog("[Downloader] done, model in place")
-            Task { @MainActor in self.status = .done; self.progress = 1 }
+            AppLog.log("下载器: \(tier.displayName) 下载完成并就位")
+            Task { @MainActor in
+                self.status = .idle
+                self.downloadingTier = nil
+                self.progress = 1
+            }
         } catch {
             let msg = error.localizedDescription
-            NSLog("[Downloader] move failed: %@", msg)
-            Task { @MainActor in self.status = .failed(msg) }
+            AppLog.log("下载器: 移动文件失败 \(msg)")
+            Task { @MainActor in
+                self.status = .failed(msg)
+                self.downloadingTier = nil
+            }
         }
     }
 
     nonisolated func urlSession(_ session: URLSession, task: URLSessionTask,
                                 didCompleteWithError error: Error?) {
-        if let error {
-            NSLog("[Downloader] completed with error: %@", error.localizedDescription)
-            let msg = error.localizedDescription
-            Task { @MainActor in
-                if case .downloading = self.status { self.status = .failed(msg) }
+        guard let error else { return }
+        let msg = error.localizedDescription
+        AppLog.log("下载器: 失败 \(msg)")
+        Task { @MainActor in
+            if case .downloading = self.status {
+                self.status = .failed(msg)
+                self.downloadingTier = nil
             }
-        } else {
-            NSLog("[Downloader] task completed without error")
         }
     }
 }

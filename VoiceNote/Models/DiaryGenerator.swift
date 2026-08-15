@@ -19,7 +19,7 @@ enum DiaryGenerator {
     }
 
     static var sourceLabel: String {
-        if LlamaDiaryEngine.isModelDownloaded { return "On-device · Qwen3-1.7B" }
+        if LlamaDiaryEngine.isModelDownloaded { return "On-device · \(ModelTier.active.displayName)" }
         #if canImport(FoundationModels)
         if #available(iOS 26, *), case .available = SystemLanguageModel.default.availability {
             return "On-device · Foundation Models"
