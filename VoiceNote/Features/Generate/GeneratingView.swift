@@ -31,11 +31,19 @@ struct GeneratingView: View {
                 VStack(spacing: Space.s3) {
                     ProgressBar(value: progress)
                     HStack {
-                        Text(stages[min(stageIndex, 2)].label)
+                        Text(liveLabel)
                             .font(.serifBody(14)).foregroundStyle(DC.accent700)
                         Spacer()
                         Text(elapsedLabel).font(.serifBody(12.5)).monospacedDigit()
                             .foregroundStyle(DC.neutral600)
+                    }
+                    if coordinator.liveChars > 0 {
+                        HStack {
+                            Text("已生成 \(coordinator.liveChars) 字")
+                                .font(.serifBody(12.5)).monospacedDigit()
+                                .foregroundStyle(DC.neutral600)
+                            Spacer()
+                        }
                     }
                 }
 
@@ -74,6 +82,14 @@ struct GeneratingView: View {
         String(format: "已进行 %02d:%02d", elapsed / 60, elapsed % 60)
     }
 
+    /// 有流式进展就显示「正在写 X」,否则退回阶段文案
+    private var liveLabel: String {
+        if let s = coordinator.liveSection, coordinator.liveChars > 0 {
+            return "正在写「\(s)」"
+        }
+        return stages[min(stageIndex, 2)].label
+    }
+
     private func run() async {
         // 若已有完成待查看的成稿,直接呈现;否则启动(协调器持有任务,离开本页不中断)
         if let n = coordinator.take() {
@@ -87,9 +103,14 @@ struct GeneratingView: View {
             try? await Task.sleep(nanoseconds: 500_000_000)
             ticks += 1
             elapsed = ticks / 2
-            // 渐近推进到 92%,真实完成时补到 100%
-            withAnimation(.linear(duration: 0.4)) {
-                progress += (0.92 - progress) * 0.035
+            // 有流式字数则按典型 700 字目标估算真实进度,否则渐近推进
+            if coordinator.liveChars > 0 {
+                let est = min(0.95, Double(coordinator.liveChars) / 700.0)
+                withAnimation(.linear(duration: 0.4)) { progress = max(progress, est) }
+            } else {
+                withAnimation(.linear(duration: 0.4)) {
+                    progress += (0.92 - progress) * 0.035
+                }
             }
             stageIndex = progress < 0.3 ? 0 : (progress < 0.7 ? 1 : 2)
         }

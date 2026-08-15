@@ -66,7 +66,8 @@ static void vn_llama_log_cb(enum ggml_log_level level, const char *text, void *u
 - (NSString *)generateWithSystem:(NSString *)system
                             user:(NSString *)user
                          grammar:(NSString *)grammar
-                       maxTokens:(int)maxTokens {
+                       maxTokens:(int)maxTokens
+                      onProgress:(LlamaProgressHandler)onProgress {
     if (![self isLoaded]) return nil;
 
     @autoreleasepool {
@@ -130,6 +131,11 @@ static void vn_llama_log_cb(enum ggml_log_level level, const char *text, void *u
             char piece[512];
             int32_t np = llama_token_to_piece(_vocab, newTok, piece, sizeof(piece), 0, true);
             if (np > 0) result.append(piece, np);
+            // 每 8 个 token 回调一次进度(整串重建,规避 UTF-8 多字节被 token 边界切断)
+            if (onProgress && (i & 7) == 0) {
+                NSString *acc = [NSString stringWithUTF8String:result.c_str()];
+                if (acc) onProgress(acc);
+            }
             batch = llama_batch_get_one(&newTok, 1);
         }
         llama_sampler_free(smpl);

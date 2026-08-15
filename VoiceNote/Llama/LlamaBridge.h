@@ -22,13 +22,18 @@ NS_ASSUME_NONNULL_BEGIN
 /// @return 是否加载成功
 - (BOOL)loadModelAtPath:(NSString *)path contextSize:(int)nCtx;
 
+/// 生成进度回调:参数为当前已生成的完整文本(累积值,非增量)
+typedef void (^LlamaProgressHandler)(NSString * _Nonnull accumulated);
+
 /// 生成一次。system/user 会套用模型内置 chat template(Qwen)。
 /// @param grammar GBNF grammar 字符串(约束结构化 JSON,可空)
+/// @param onProgress 每生成若干 token 回调一次(在推理线程上,回调方自行切主线程)
 /// 同步阻塞,务必放后台线程调用。返回生成文本(失败返回 nil)。
 - (nullable NSString *)generateWithSystem:(NSString *)system
                                      user:(NSString *)user
                                   grammar:(nullable NSString *)grammar
-                                maxTokens:(int)maxTokens;
+                                maxTokens:(int)maxTokens
+                               onProgress:(nullable LlamaProgressHandler)onProgress;
 
 /// 释放模型与上下文
 - (void)unload;

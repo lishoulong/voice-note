@@ -28,13 +28,15 @@ enum DiaryGenerator {
         return "On-device · 占位(未下载模型)"
     }
 
-    static func generate(from entries: [Entry], date: Date) async -> DiaryNote? {
+    static func generate(from entries: [Entry], date: Date,
+                         onProgress: (@Sendable (String) -> Void)? = nil) async -> DiaryNote? {
         // 主路:llama.cpp + Qwen(本地 GGUF)。失败自动重试一次:
         // 若因后台 GPU 被拒导致后端中毒,重试时 ensureLoaded 会整体重建后端并重跑
         if LlamaDiaryEngine.isModelDownloaded {
             let items = entries.map { (time: $0.timeLabel, text: $0.text) }
             for _ in 0..<2 {
-                if let note = await LlamaDiaryEngine.shared.makeDraft(entries: items, date: date) {
+                if let note = await LlamaDiaryEngine.shared.makeDraft(entries: items, date: date,
+                                                                      onProgress: onProgress) {
                     return note
                 }
             }

@@ -30,16 +30,36 @@ final class GenerationCoordinator {
     /// 已完成但尚未查看的成稿(等待页在场则直接跳结果;不在场由横幅/通知承接)
     private(set) var completed: DiaryNote?
 
+    // 实时生成进展(流式反馈:等待页显示已写字数与正在写的小节)
+    private(set) var liveChars = 0
+    private(set) var liveSection: String?
+
     @ObservationIgnored private var task: Task<Void, Never>?
 
     func start(entries: [Entry]) {
         guard !isRunning else { return }
         isRunning = true
         completed = nil
+        liveChars = 0
+        liveSection = nil
         requestPermissionIfNeeded()
         task = Task { [weak self] in
-            let note = await DiaryGenerator.generate(from: entries, date: .now)
+            let note = await DiaryGenerator.generate(from: entries, date: .now) { accumulated in
+                Task { @MainActor [weak self] in self?.updateLive(accumulated) }
+            }
             self?.finish(with: note ?? SampleData.makeTodayDraft())
+        }
+    }
+
+    /// 从累积的 JSON 原文里提取可展示的进展:总字数 + 最近一个小节标题
+    private func updateLive(_ raw: String) {
+        liveChars = raw.count
+        if let regex = try? NSRegularExpression(pattern: #""title"\s*:\s*"([^"]{1,20})""#),
+           let last = regex.matches(in: raw, range: NSRange(raw.startIndex..., in: raw)).last,
+           let r = Range(last.range(at: 1), in: raw) {
+            let title = String(raw[r])
+            // 第一个 title 是日记标题,后续的是小节标题;都值得展示
+            liveSection = title
         }
     }
 

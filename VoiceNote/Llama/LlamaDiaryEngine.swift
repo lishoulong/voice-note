@@ -34,7 +34,9 @@ actor LlamaDiaryEngine {
     }
 
     /// 把当天条目整理成成稿。失败返回 nil(调用方降级)。
-    func makeDraft(entries: [(time: String, text: String)], date: Date) -> DiaryNote? {
+    /// onProgress:生成过程中回调当前累积文本(推理线程上,调用方自行切主线程)
+    func makeDraft(entries: [(time: String, text: String)], date: Date,
+                   onProgress: (@Sendable (String) -> Void)? = nil) -> DiaryNote? {
         AppLog.log("整理今日: 开始, \(entries.count) 条")
         guard ensureLoaded() else { return nil }
         let lines = entries.map { "\($0.time) \($0.text)" }.joined(separator: "\n")
@@ -42,7 +44,8 @@ actor LlamaDiaryEngine {
 
         let t0 = Date()
         guard let raw = bridge.generate(withSystem: Self.systemPrompt, user: user,
-                                        grammar: Self.grammar, maxTokens: 1500) else {
+                                        grammar: Self.grammar, maxTokens: 1500,
+                                        onProgress: onProgress) else {
             AppLog.log("整理今日: 生成失败(decode 中断/后端错误), 耗时 \(String(format: "%.0f", -t0.timeIntervalSinceNow))s, 详见 llama.log")
             return nil
         }
@@ -77,7 +80,7 @@ actor LlamaDiaryEngine {
         严格保持原意,不增删信息,不改写人名、地名等专有名词。只输出润色后的文字,不要任何解释。
         """
         guard let raw = bridge.generate(withSystem: sys, user: trimmed + " /no_think",
-                                        grammar: nil, maxTokens: 400) else { return nil }
+                                        grammar: nil, maxTokens: 400, onProgress: nil) else { return nil }
         // Qwen3 关思考后仍会输出空的 <think></think>,无 grammar 约束时会漏进结果,剥掉
         let cleaned = Self.stripThink(raw)
         return cleaned.isEmpty ? nil : cleaned
